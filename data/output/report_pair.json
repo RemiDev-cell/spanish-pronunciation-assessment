@@ -1,0 +1,244 @@
+{
+  "evaluation_status": "evaluable",
+  "language": "es",
+  "comparison_type": "audio_vs_reference_audio",
+  "reference_audio_path": "/Users/remipartouche/Downloads/Titouan_Goepfert.mp3",
+  "test_audio_path": "/Users/remipartouche/Downloads/GOEPFERT_Titouan_01.mp3",
+  "asr_reference_text": "Hola, me presento, soy Tituan, tengo 18 años y vengo de Bretagne en Francia. Cresciente a Irlandia hasta los 10 años y allí descubrí mi pasión por el mar y la vela. Desde entonces siempre me ha de encantar estar cerca del agua, observar los paisajes marinos y sentir la libertad que dan a pegar. Con mi familia dejamos a Irlandia para empezar un largo viaje por América Latina durante dos años. Descubrir la belleza de los paisajes, la amabilidad de la gente y la gran diversidad de culturas. También aprendí a hablar un poco de español, lo que me ayudó mucho a comunicarme y a comprender mejor cada país. Cuando regresé a Francia desarrollé un gran interés por la biología marina. Durante mi adolescencia participé en un pequeño club de vela en la costa Atlántica, donde aprendí a trabajar en equipo, a ser constante y a cuidar el medio ambiente. Actualmente vivo en el campus de Linsa, donde estudiosciencias y mi hermana estudia medicina en Bretagne. En el futuro me gustaría estudiar o seaenografía y contribuir a la protección de los océanos. Ojalá pueda hacerlo algún día. Actualmente vivo en el campus de Linsa, donde estudiosciencias y mi hermana estudia medicina en Bretagne. En el futuro me gustaría estudiar o seaenografía y contribuir a la protección de los océanos. Ojalá pueda hacerlo algún día.",
+  "global_scores": {
+    "score_total_points": 68.72,
+    "percent_similarity": 68.72,
+    "percent_delta": 31.28,
+    "interpretation": "satisfaisant mais écarts perceptibles"
+  },
+  "domain_scores": {
+    "segmental_precision": {
+      "points_obtained": 23.88,
+      "points_max": 30.0,
+      "percent_similarity": 79.61,
+      "percent_delta": 20.39,
+      "interpretation": "très proche"
+    },
+    "syllabic_structure_and_articulation": {
+      "points_obtained": 15.0,
+      "points_max": 15.0,
+      "percent_similarity": 100.0,
+      "percent_delta": 0.0,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    },
+    "lexical_stress": {
+      "points_obtained": 0.0,
+      "points_max": 20.0,
+      "percent_similarity": 0.0,
+      "percent_delta": 100.0,
+      "interpretation": "très éloigné"
+    },
+    "sentence_prosody": {
+      "points_obtained": 19.19,
+      "points_max": 20.0,
+      "percent_similarity": 95.94,
+      "percent_delta": 4.06,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    },
+    "fluency_and_voice_control": {
+      "points_obtained": 5.94,
+      "points_max": 10.0,
+      "percent_similarity": 59.44,
+      "percent_delta": 40.56,
+      "interpretation": "fragile"
+    },
+    "phonological_intelligibility": {
+      "points_obtained": 4.71,
+      "points_max": 5.0,
+      "percent_similarity": 94.12,
+      "percent_delta": 5.88,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    }
+  },
+  "localized_errors": [
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "Hola",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «Hola», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "Tailandia",
+      "localisation_precise": "ref_stress_ok|test_argmax_2",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «Tailandia», la référence marque l'accent attendu (syllabe 1), mais le test met l'acuité acoustique max sur 2.",
+      "realisation_observee": "argmax_prominence_test=2",
+      "realisation_attendue": "comme référence: argmax=1 (syllabe tonique 1)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "hasta",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «hasta», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "vela",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «vela», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "entonces",
+      "localisation_precise": "ref_stress_ok|test_argmax_0",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «entonces», la référence marque l'accent attendu (syllabe 1), mais le test met l'acuité acoustique max sur 0.",
+      "realisation_observee": "argmax_prominence_test=0",
+      "realisation_attendue": "comme référence: argmax=1 (syllabe tonique 1)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "agua",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «agua», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "gente",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «gente», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "ayudó",
+      "localisation_precise": "ref_stress_ok|test_argmax_0",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «ayudó», la référence marque l'accent attendu (syllabe 2), mais le test met l'acuité acoustique max sur 0.",
+      "realisation_observee": "argmax_prominence_test=0",
+      "realisation_attendue": "comme référence: argmax=2 (syllabe tonique 2)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "mucho",
+      "localisation_precise": "ref_stress_ok|test_argmax_1",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «mucho», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "realisation_observee": "argmax_prominence_test=1",
+      "realisation_attendue": "comme référence: argmax=0 (syllabe tonique 0)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "país",
+      "localisation_precise": "ref_stress_ok|test_argmax_0",
+      "niveau_confiance": 0.55,
+      "observation": "Sur «país», la référence marque l'accent attendu (syllabe 1), mais le test met l'acuité acoustique max sur 0.",
+      "realisation_observee": "argmax_prominence_test=0",
+      "realisation_attendue": "comme référence: argmax=1 (syllabe tonique 1)",
+      "effet_perceptif": "Écart de stress lexical vs référence pédagogique.",
+      "correction_concrete": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priorite": "haute"
+    }
+  ],
+  "priority_issues": [
+    "accent_tonique_mal_place — Hola (haute)",
+    "accent_tonique_mal_place — Tailandia (haute)",
+    "accent_tonique_mal_place — hasta (haute)",
+    "accent_tonique_mal_place — vela (haute)",
+    "accent_tonique_mal_place — entonces (haute)"
+  ],
+  "feedbacks": [
+    {
+      "observation": "Sur «Hola», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «Tailandia», la référence marque l'accent attendu (syllabe 1), mais le test met l'acuité acoustique max sur 2.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «hasta», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «vela», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «entonces», la référence marque l'accent attendu (syllabe 1), mais le test met l'acuité acoustique max sur 0.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «agua», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «gente», la référence marque l'accent attendu (syllabe 0), mais le test met l'acuité acoustique max sur 1.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    },
+    {
+      "observation": "Sur «ayudó», la référence marque l'accent attendu (syllabe 2), mais le test met l'acuité acoustique max sur 0.",
+      "effect": "Écart de stress lexical vs référence pédagogique.",
+      "recommendation": "Rejouer le mot en imitant le relief de la syllabe tonique du modèle (durée + intensité + mélodie).",
+      "priority": "haute"
+    }
+  ],
+  "strengths": [
+    "Pauses et mouvement prosodique assez alignés avec la référence."
+  ],
+  "final_summary": "Score global 68.7/100 (68.7% de similarité). Évaluation par rapport à la référence audio et au script partagé: satisfaisant mais écarts perceptibles.",
+  "expected_text": "Hola, me presento: soy Titouan, tengo dieciocho años y vengo de Bretaña, en Francia. Crecí en Tailandia hasta los diez años, y allí descubrí mi pasión por el mar y la vela. Desde entonces, siempre me ha encantado estar cerca del agua, observar los paisajes marinos y sentir la libertad que da navegar. Con mi familia dejamos Tailandia para empezar un largo viaje por América Latina durante dos años. Descubrí la belleza de los paisajes, la amabilidad de la gente y la gran diversidad de culturas. También aprendí a hablar un poco de español, lo que me ayudó mucho a comunicarme y a comprender mejor cada país. Cuando regresé a Francia, desarrollé un gran interés por la biología marina. Durante mi adolescencia participé en un pequeño club de vela en la costa atlántica, donde aprendí a trabajar en equipo, a ser constante y a cuidar el medioambiente. Actualmente vivo en el campus del INSA, donde estudio ciencias, y mi hermana estudia medicina en Bretaña. En el futuro me gustaría estudiar oceanografía y contribuir a la protección de los océanos. Ojalá pueda hacerlo algún día.",
+  "asr_text": "Hola, me presento soy Tituán, tengo 18 años y vengo de británia en Francia. He crecido en Tailandia hasta los 10 años y ahí descubrí mi pasión por el mar y la vela. Desde entonces siempre me ha encantado estar cerca del agua. Como mi familia dejemos Tailandia para empezar un largo viaje por amercía latina durante dos años. Descubrí la belleza de los paisajes, la amabilidad, la ambibilidad de la gente y la diversidad de culturas. También aprendí a hablar un poco de español lo que me ayuda mucho a mis viajes. Cuando regrese a Francia desarroye un gran interés por la biología margina durante mi adolescencia, en pequeño club de vela en la costa Atlántica donde aprendí a trabajar en equipo y a cuidar el medio ambiente. Actualmente vivo en el campus de Alínza donde estudió cienzas y mi hermana estudiaba Medicina en Británia. En el futuro me gustaría estudiar o sea no grafía y contemplaría la protección de los socianos. Ojalá pueda hacerlo algún día.",
+  "warnings": []
+}

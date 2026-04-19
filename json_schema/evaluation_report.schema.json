@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "DomainScoreBlock": {
+      "properties": {
+        "points_obtained": {
+          "default": 0,
+          "title": "Points Obtained",
+          "type": "number"
+        },
+        "points_max": {
+          "title": "Points Max",
+          "type": "number"
+        },
+        "percent_similarity": {
+          "default": 0,
+          "title": "Percent Similarity",
+          "type": "number"
+        },
+        "percent_delta": {
+          "default": 0,
+          "title": "Percent Delta",
+          "type": "number"
+        },
+        "interpretation": {
+          "default": "",
+          "title": "Interpretation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "points_max"
+      ],
+      "title": "DomainScoreBlock",
+      "type": "object"
+    },
+    "DomainScores": {
+      "properties": {
+        "segmental_precision": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        },
+        "syllabic_structure_and_articulation": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        },
+        "lexical_stress": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        },
+        "sentence_prosody": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        },
+        "fluency_and_voice_control": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        },
+        "phonological_intelligibility": {
+          "$ref": "#/$defs/DomainScoreBlock"
+        }
+      },
+      "title": "DomainScores",
+      "type": "object"
+    },
+    "FeedbackItem": {
+      "properties": {
+        "observation": {
+          "title": "Observation",
+          "type": "string"
+        },
+        "effect": {
+          "title": "Effect",
+          "type": "string"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "priority": {
+          "title": "Priority",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation",
+        "effect",
+        "recommendation",
+        "priority"
+      ],
+      "title": "FeedbackItem",
+      "type": "object"
+    },
+    "GlobalScores": {
+      "properties": {
+        "score_total_points": {
+          "default": 0,
+          "title": "Score Total Points",
+          "type": "number"
+        },
+        "percent_similarity": {
+          "default": 0,
+          "title": "Percent Similarity",
+          "type": "number"
+        },
+        "percent_delta": {
+          "default": 0,
+          "title": "Percent Delta",
+          "type": "number"
+        },
+        "interpretation": {
+          "default": "",
+          "title": "Interpretation",
+          "type": "string"
+        }
+      },
+      "title": "GlobalScores",
+      "type": "object"
+    },
+    "LocalizedError": {
+      "properties": {
+        "type_erreur": {
+          "title": "Type Erreur",
+          "type": "string"
+        },
+        "unite_cible": {
+          "title": "Unite Cible",
+          "type": "string"
+        },
+        "localisation_precise": {
+          "title": "Localisation Precise",
+          "type": "string"
+        },
+        "niveau_confiance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Niveau Confiance",
+          "type": "number"
+        },
+        "observation": {
+          "title": "Observation",
+          "type": "string"
+        },
+        "realisation_observee": {
+          "title": "Realisation Observee",
+          "type": "string"
+        },
+        "realisation_attendue": {
+          "title": "Realisation Attendue",
+          "type": "string"
+        },
+        "effet_perceptif": {
+          "title": "Effet Perceptif",
+          "type": "string"
+        },
+        "correction_concrete": {
+          "title": "Correction Concrete",
+          "type": "string"
+        },
+        "priorite": {
+          "title": "Priorite",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type_erreur",
+        "unite_cible",
+        "localisation_precise",
+        "niveau_confiance",
+        "observation",
+        "realisation_observee",
+        "realisation_attendue",
+        "effet_perceptif",
+        "correction_concrete",
+        "priorite"
+      ],
+      "title": "LocalizedError",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "evaluation_status": {
+      "enum": [
+        "evaluable",
+        "evaluable_with_warning",
+        "non_evaluable"
+      ],
+      "title": "Evaluation Status",
+      "type": "string"
+    },
+    "language": {
+      "const": "es",
+      "default": "es",
+      "title": "Language",
+      "type": "string"
+    },
+    "comparison_type": {
+      "default": "audio_vs_expected_text",
+      "enum": [
+        "audio_vs_expected_text",
+        "audio_vs_reference_audio"
+      ],
+      "title": "Comparison Type",
+      "type": "string"
+    },
+    "reference_audio_path": {
+      "default": "",
+      "title": "Reference Audio Path",
+      "type": "string"
+    },
+    "test_audio_path": {
+      "default": "",
+      "title": "Test Audio Path",
+      "type": "string"
+    },
+    "asr_reference_text": {
+      "default": "",
+      "title": "Asr Reference Text",
+      "type": "string"
+    },
+    "global_scores": {
+      "$ref": "#/$defs/GlobalScores"
+    },
+    "domain_scores": {
+      "$ref": "#/$defs/DomainScores"
+    },
+    "localized_errors": {
+      "items": {
+        "$ref": "#/$defs/LocalizedError"
+      },
+      "title": "Localized Errors",
+      "type": "array"
+    },
+    "priority_issues": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Priority Issues",
+      "type": "array"
+    },
+    "feedbacks": {
+      "items": {
+        "$ref": "#/$defs/FeedbackItem"
+      },
+      "title": "Feedbacks",
+      "type": "array"
+    },
+    "strengths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Strengths",
+      "type": "array"
+    },
+    "final_summary": {
+      "default": "",
+      "title": "Final Summary",
+      "type": "string"
+    },
+    "expected_text": {
+      "default": "",
+      "title": "Expected Text",
+      "type": "string"
+    },
+    "asr_text": {
+      "default": "",
+      "title": "Asr Text",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_status"
+  ],
+  "title": "EvaluationReport",
+  "type": "object"
+}

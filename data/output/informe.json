@@ -1,0 +1,243 @@
+{
+  "evaluation_status": "evaluable",
+  "language": "es",
+  "comparison_type": "audio_vs_expected_text",
+  "global_scores": {
+    "score_total_points": 74.42,
+    "percent_similarity": 74.42,
+    "percent_delta": 25.58,
+    "interpretation": "satisfaisant mais écarts perceptibles"
+  },
+  "domain_scores": {
+    "segmental_precision": {
+      "points_obtained": 27.14,
+      "points_max": 30.0,
+      "percent_similarity": 90.46,
+      "percent_delta": 9.54,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    },
+    "syllabic_structure_and_articulation": {
+      "points_obtained": 15.0,
+      "points_max": 15.0,
+      "percent_similarity": 100.0,
+      "percent_delta": 0.0,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    },
+    "lexical_stress": {
+      "points_obtained": 0.0,
+      "points_max": 20.0,
+      "percent_similarity": 0.0,
+      "percent_delta": 100.0,
+      "interpretation": "très éloigné"
+    },
+    "sentence_prosody": {
+      "points_obtained": 17.28,
+      "points_max": 20.0,
+      "percent_similarity": 86.4,
+      "percent_delta": 13.6,
+      "interpretation": "très proche"
+    },
+    "fluency_and_voice_control": {
+      "points_obtained": 10.0,
+      "points_max": 10.0,
+      "percent_similarity": 100.0,
+      "percent_delta": 0.0,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    },
+    "phonological_intelligibility": {
+      "points_obtained": 5.0,
+      "points_max": 5.0,
+      "percent_similarity": 100.0,
+      "percent_delta": 0.0,
+      "interpretation": "quasi identique à la cible textuelle attendue"
+    }
+  },
+  "localized_errors": [
+    {
+      "type_erreur": "consonne_mal_realisee",
+      "unite_cible": "acordarme",
+      "localisation_precise": "phone[spn]@5.87-6.51s",
+      "niveau_confiance": 0.95,
+      "observation": "Durée segmentale atypique (z≈8.4) pour le phone «spn» dans «acordarme».",
+      "realisation_observee": "640 ms",
+      "realisation_attendue": "autour de 102 ms (écart-type global)",
+      "effet_perceptif": "Segment parfois étiré ou élidé; intelligibilité locale réduite.",
+      "correction_concrete": "Cibler l'articulation nette de ce son sans allonger inutilement la voyelle ou affaiblir la consonne.",
+      "priorite": "moyenne"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "cuyo",
+      "localisation_precise": "mot:cuyo|syllabe_obs:1|syllabe_attendue:0",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 0.",
+      "realisation_observee": "prominence max sur syllabe 1",
+      "realisation_attendue": "accent tonique sur syllabe 0",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "acordarme",
+      "localisation_precise": "mot:acordarme|syllabe_obs:1|syllabe_attendue:2",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 2.",
+      "realisation_observee": "prominence max sur syllabe 1",
+      "realisation_attendue": "accent tonique sur syllabe 2",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "vivía",
+      "localisation_precise": "mot:vivía|syllabe_obs:2|syllabe_attendue:1",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 2, alors que l'accent lexical attendu est 1.",
+      "realisation_observee": "prominence max sur syllabe 2",
+      "realisation_attendue": "accent tonique sur syllabe 1",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "antigua",
+      "localisation_precise": "mot:antigua|syllabe_obs:2|syllabe_attendue:1",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 2, alors que l'accent lexical attendu est 1.",
+      "realisation_observee": "prominence max sur syllabe 2",
+      "realisation_attendue": "accent tonique sur syllabe 1",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "flaco",
+      "localisation_precise": "mot:flaco|syllabe_obs:1|syllabe_attendue:0",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 0.",
+      "realisation_observee": "prominence max sur syllabe 1",
+      "realisation_attendue": "accent tonique sur syllabe 0",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "accent_tonique_mal_place",
+      "unite_cible": "corredor",
+      "localisation_precise": "mot:corredor|syllabe_obs:1|syllabe_attendue:2",
+      "niveau_confiance": 0.55,
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 2.",
+      "realisation_observee": "prominence max sur syllabe 1",
+      "realisation_attendue": "accent tonique sur syllabe 2",
+      "effet_perceptif": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "correction_concrete": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priorite": "haute"
+    },
+    {
+      "type_erreur": "voyelle_mal_realisee",
+      "unite_cible": "mancha",
+      "localisation_precise": "phone[a]@3.29-3.54s",
+      "niveau_confiance": 0.726,
+      "observation": "Durée segmentale atypique (z≈2.3) pour le phone «a» dans «mancha».",
+      "realisation_observee": "250 ms",
+      "realisation_attendue": "autour de 102 ms (écart-type global)",
+      "effet_perceptif": "Segment parfois étiré ou élidé; intelligibilité locale réduite.",
+      "correction_concrete": "Cibler l'articulation nette de ce son sans allonger inutilement la voyelle ou affaiblir la consonne.",
+      "priorite": "moyenne"
+    },
+    {
+      "type_erreur": "syllabe_tonique_pas_assez_saillante",
+      "unite_cible": "En",
+      "localisation_precise": "mot:En|syllabe_tonique:0",
+      "niveau_confiance": 0.5,
+      "observation": "La syllabe tonique attendue n'est pas nettement plus prominente que les autres (proxy durée/F0/intensité).",
+      "realisation_observee": "écart de z-scores internes ≈0.00",
+      "realisation_attendue": "mise en relief claire de la syllabe tonique",
+      "effet_perceptif": "Stress lexical peu audible; intelligibilité légèrement réduite.",
+      "correction_concrete": "Allonger légèrement la voyelle tonique, augmenter l'énergie (intensité) et marquer une courbe de hauteur plus nette sur cette syllabe.",
+      "priorite": "moyenne"
+    },
+    {
+      "type_erreur": "syllabe_tonique_pas_assez_saillante",
+      "unite_cible": "un",
+      "localisation_precise": "mot:un|syllabe_tonique:0",
+      "niveau_confiance": 0.5,
+      "observation": "La syllabe tonique attendue n'est pas nettement plus prominente que les autres (proxy durée/F0/intensité).",
+      "realisation_observee": "écart de z-scores internes ≈0.00",
+      "realisation_attendue": "mise en relief claire de la syllabe tonique",
+      "effet_perceptif": "Stress lexical peu audible; intelligibilité légèrement réduite.",
+      "correction_concrete": "Allonger légèrement la voyelle tonique, augmenter l'énergie (intensité) et marquer une courbe de hauteur plus nette sur cette syllabe.",
+      "priorite": "moyenne"
+    }
+  ],
+  "priority_issues": [
+    "accent_tonique_mal_place — cuyo (haute)",
+    "accent_tonique_mal_place — acordarme (haute)",
+    "accent_tonique_mal_place — vivía (haute)",
+    "accent_tonique_mal_place — antigua (haute)",
+    "accent_tonique_mal_place — flaco (haute)"
+  ],
+  "feedbacks": [
+    {
+      "observation": "Durée segmentale atypique (z≈8.4) pour le phone «spn» dans «acordarme».",
+      "effect": "Segment parfois étiré ou élidé; intelligibilité locale réduite.",
+      "recommendation": "Cibler l'articulation nette de ce son sans allonger inutilement la voyelle ou affaiblir la consonne.",
+      "priority": "moyenne"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 0.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 2.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 2, alors que l'accent lexical attendu est 1.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 2, alors que l'accent lexical attendu est 1.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 0.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "HEURISTIC: la syllabe la plus saillante acoustiquement semble être l'index 1, alors que l'accent lexical attendu est 2.",
+      "effect": "Risque de mot perçu comme 'mal accentué' ou ambigu.",
+      "recommendation": "Renforcer durée, intensité et mouvement mélodique sur la syllabe tonique attendue, sans déplacer le stress sur une syllabe voisine.",
+      "priority": "haute"
+    },
+    {
+      "observation": "Durée segmentale atypique (z≈2.3) pour le phone «a» dans «mancha».",
+      "effect": "Segment parfois étiré ou élidé; intelligibilité locale réduite.",
+      "recommendation": "Cibler l'articulation nette de ce son sans allonger inutilement la voyelle ou affaiblir la consonne.",
+      "priority": "moyenne"
+    }
+  ],
+  "strengths": [
+    "Segmentation temporelle relativement stable (durées segmentales).",
+    "Prosodie de phrase suffisamment modulée pour guider l'auditeur.",
+    "Débit et pauses globalement maîtrisés."
+  ],
+  "final_summary": "Score global 74.4/100 (74.4% de similarité). Lecture: satisfaisant mais écarts perceptibles.",
+  "expected_text": "En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor",
+  "asr_text": "En un lugar de la mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía unidad algo de los delanza en astillero, a larga antigua, rosín flaco y galgo corredor.",
+  "warnings": []
+}

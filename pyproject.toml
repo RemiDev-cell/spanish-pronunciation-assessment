@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spanish-phon-assessment"
+version = "0.1.0"
+description = "MVP: Spanish learner audio vs expected text — ASR, MFA alignment, prosody features, heuristic scoring."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "scipy>=1.11",
+  "soundfile>=0.12",
+  "librosa>=0.10",
+  "pydantic>=2.5",
+  "pydantic-settings>=2.1",
+  "rapidfuzz>=3.6",
+  "openai-whisper>=20231117",
+  "praat-parselmouth>=0.4.3",
+  "silabeador>=1.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "jsonschema>=4.20",
+  "ruff>=0.3",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
