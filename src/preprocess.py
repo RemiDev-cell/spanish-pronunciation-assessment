@@ -69,6 +69,18 @@ def _hf_energy_ratio(x: np.ndarray, sr: int) -> float:
     return hf / total
 
 
+def _clipping_ratio(x: np.ndarray, *, threshold: float = 0.98) -> float:
+    if x.size == 0:
+        return 0.0
+    return float(np.mean(np.abs(x.astype(np.float64)) >= threshold))
+
+
+def _silence_ratio(x: np.ndarray, *, threshold: float) -> float:
+    if x.size == 0:
+        return 1.0
+    return float(np.mean(np.abs(x.astype(np.float64)) <= threshold))
+
+
 def analyze_audio_quality(wav_path: Path, settings: Settings) -> AudioQualityReport:
     data, sr = sf.read(str(wav_path), always_2d=False)
     if data.ndim > 1:
@@ -76,6 +88,8 @@ def analyze_audio_quality(wav_path: Path, settings: Settings) -> AudioQualityRep
     dur = float(len(data) / sr) if sr else 0.0
     rms = _rms_db(data)
     hf = _hf_energy_ratio(data, int(sr))
+    clipping = _clipping_ratio(data)
+    silence = _silence_ratio(data, threshold=settings.silence_amplitude_threshold)
 
     reasons: list[str] = []
     if dur < settings.min_duration_sec:
@@ -84,12 +98,18 @@ def analyze_audio_quality(wav_path: Path, settings: Settings) -> AudioQualityRep
         reasons.append(f"low_rms:{rms:.1f}dB")
     if hf > settings.max_hf_energy_ratio:
         reasons.append(f"high_frequency_noise_proxy:{hf:.2f}")
+    if clipping > settings.max_clipping_ratio:
+        reasons.append(f"clipping_ratio:{clipping:.3f}")
+    if silence > settings.max_silence_ratio:
+        reasons.append(f"silence_ratio:{silence:.3f}")
 
     ok = len(reasons) == 0
     return AudioQualityReport(
         duration_sec=dur,
         rms_db=rms,
         hf_energy_ratio=hf,
+        clipping_ratio=clipping,
+        silence_ratio=silence,
         is_evaluable=ok,
         reason=None if ok else ";".join(reasons),
     )

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     min_duration_sec: float = 0.8
     min_rms_db: float = -45.0
     max_hf_energy_ratio: float = 0.42  # HEURISTIC: very noisy broadband hiss
+    max_clipping_ratio: float = 0.01
+    max_silence_ratio: float = 0.92
+    silence_amplitude_threshold: float = 0.003
 
     mfa_binary: str = "mfa"
     mfa_dictionary: str = "spanish_mfa"

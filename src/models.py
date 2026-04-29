@@ -156,6 +156,8 @@ class AudioQualityReport(BaseModel):
     duration_sec: float
     rms_db: float
     hf_energy_ratio: float  # HEURISTIC noise proxy
+    clipping_ratio: float = 0.0
+    silence_ratio: float = 0.0
     is_evaluable: bool
     reason: Optional[str] = None
 

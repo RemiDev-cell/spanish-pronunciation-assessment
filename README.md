@@ -23,7 +23,8 @@ heuristic limits. It is not an absolute judge of phoneme correctness.
 ## Current limits
 
 - No native syllable-tier alignment or G2P-based syllable-to-phone grouping.
-- No vowel formant tracking, true SNR, clipping detection, or robust VAD-based disfluency detection.
+- No vowel formant tracking, true SNR, or robust VAD-based disfluency detection.
+- Clipping and mostly-silent audio are flagged with simple signal-level heuristics.
 - No reference-free ground truth phoneme correctness.
 - No calibrated scoring against human pronunciation judgments.
 - `omission_segmentale` and `ajout_segmental` remain taxonomy entries, not robust detectors.
@@ -77,6 +78,7 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
   With `--output`, TextGrids are copied to `aligned_textgrids/` next to the report.
   Without `--output`, they are copied under `data/output/aligned_textgrids/`.
 - `audio_quality` with the model and learner quality-gate measurements.
+  It includes duration, RMS, high-frequency energy ratio, clipping ratio, and silence ratio.
 - `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
   F0 spread includes a semitone-normalized value so intonation comparison is less sensitive to speaker pitch.
   Syllable prominence exposes normalized duration, F0, and intensity components.
