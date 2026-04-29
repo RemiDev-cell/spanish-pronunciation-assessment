@@ -54,3 +54,33 @@ def test_reference_pair_detects_stress_gap():
     types = {i.error_type.value for i in issues}
     # argmax still on tonic syllable (0) but prominence z on tonic is much lower than reference
     assert "syllabe_tonique_pas_assez_saillante" in types
+
+
+def test_reference_pair_uses_semitone_f0_spread_for_intonation():
+    settings = get_settings()
+    exp = [WordExpectation(surface="hola", syllables=["ho", "la"], stressed_syllable_index=0)]
+    align_model = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
+    align_learner = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
+
+    feat_model = FeatureBundle(
+        word_prominence_z={"0:hola": _prom_bundle([1.3, -0.5], 0, "hola")},
+        speech_rate_wpm=120.0,
+        f0_std_hz=30.0,
+        f0_std_semitones=3.0,
+    )
+    feat_learner = FeatureBundle(
+        word_prominence_z={"0:hola": _prom_bundle([1.2, -0.4], 0, "hola")},
+        speech_rate_wpm=120.0,
+        f0_std_hz=28.0,
+        f0_std_semitones=1.0,
+    )
+
+    issues = collect_reference_pair_issues(
+        align_model, align_learner, feat_model, feat_learner, exp, settings
+    )
+
+    intonation_issues = [
+        issue for issue in issues if issue.error_type.value == "intonation_non_conforme"
+    ]
+    assert len(intonation_issues) == 1
+    assert "demi-tons" in intonation_issues[0].observed

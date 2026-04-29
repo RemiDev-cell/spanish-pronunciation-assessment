@@ -174,9 +174,12 @@ class FeatureBundle(BaseModel):
     pause_durations: list[float] = Field(default_factory=list)
     speech_rate_wpm: float = 0.0
     mean_f0_hz: Optional[float] = None
+    median_f0_hz: Optional[float] = None
     f0_std_hz: Optional[float] = None
+    f0_std_semitones: Optional[float] = None
     mean_intensity_db: Optional[float] = None
     intensity_std_db: Optional[float] = None
+    intensity_range_db: Optional[float] = None
     word_prominence_z: dict[str, dict[str, Any]] = Field(default_factory=dict)
     # per-word keys -> syllable index -> {"duration","f0_mean","intensity_mean","prominence_z"}
     global_phone_duration_mean: float = 0.0

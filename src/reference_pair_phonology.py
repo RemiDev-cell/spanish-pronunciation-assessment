@@ -195,25 +195,36 @@ def collect_reference_pair_issues(
             )
         )
 
-    # Intonation variability vs reference
+    # Intonation variability vs reference. Prefer semitone spread to reduce speaker-pitch bias.
+    model_f0_spread = feat_model.f0_std_semitones
+    learner_f0_spread = feat_learner.f0_std_semitones
+    f0_unit = "demi-tons"
+    f0_threshold = 1.0
+    if model_f0_spread is None or learner_f0_spread is None:
+        model_f0_spread = feat_model.f0_std_hz
+        learner_f0_spread = feat_learner.f0_std_hz
+        f0_unit = "Hz"
+        f0_threshold = 10.0
+
     if (
-        feat_model.f0_std_hz is not None
-        and feat_learner.f0_std_hz is not None
-        and feat_model.f0_std_hz > 10
-        and feat_learner.f0_std_hz < 0.55 * feat_model.f0_std_hz
+        model_f0_spread is not None
+        and learner_f0_spread is not None
+        and model_f0_spread > f0_threshold
+        and learner_f0_spread < 0.55 * model_f0_spread
     ):
         issues.append(
             PhonologyIssue(
                 error_type=LocalizedErrorType.INTONATION_NON_CONFORME,
                 target_unit="phrase",
-                precise_location="f0_std_vs_reference",
+                precise_location=f"f0_std_{f0_unit}_vs_reference",
                 confidence=0.42,
                 observation=(
                     "Variabilité F0 de l'apprenant nettement plus faible que la référence "
-                    f"(σ_learner≈{feat_learner.f0_std_hz:.1f} Hz vs σ_model≈{feat_model.f0_std_hz:.1f} Hz)."
+                    f"(σ_learner≈{learner_f0_spread:.1f} {f0_unit} vs "
+                    f"σ_model≈{model_f0_spread:.1f} {f0_unit})."
                 ),
-                observed=f"σ_F0 learner={feat_learner.f0_std_hz:.1f} Hz",
-                expected=f"σ_F0 model={feat_model.f0_std_hz:.1f} Hz",
+                observed=f"σ_F0 learner={learner_f0_spread:.1f} {f0_unit}",
+                expected=f"σ_F0 model={model_f0_spread:.1f} {f0_unit}",
                 perceptual_effect="Moins de relief mélodique que le locuteur de référence.",
                 correction="Introduire des variations de hauteur plus proches du modèle (sans copier la voix).",
                 priority="basse",

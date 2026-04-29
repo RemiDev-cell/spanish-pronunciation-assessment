@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from statistics import mean, pstdev
+from statistics import mean, median, pstdev
 from typing import Any
 
 import numpy as np
@@ -93,9 +93,17 @@ def extract_features(
     all_db.extend(dbs)
 
     mean_f0 = float(mean(all_f0)) if all_f0 else None
+    median_f0 = float(median(all_f0)) if all_f0 else None
     f0_std = float(pstdev(all_f0)) if len(all_f0) > 1 else (0.0 if all_f0 else None)
+    f0_std_st = None
+    if median_f0 is not None and median_f0 > 0 and len(all_f0) > 1:
+        st_values = [12.0 * math.log2(f / median_f0) for f in all_f0 if f > 0]
+        f0_std_st = float(pstdev(st_values)) if len(st_values) > 1 else 0.0
     mean_int = float(mean(all_db)) if all_db else None
     int_std = float(pstdev(all_db)) if len(all_db) > 1 else (0.0 if all_db else None)
+    int_range = None
+    if all_db:
+        int_range = float(np.percentile(all_db, 95) - np.percentile(all_db, 5))
 
     if phone_durs:
         g_mean = float(mean(phone_durs))
@@ -148,9 +156,12 @@ def extract_features(
         pause_durations=pause_durs,
         speech_rate_wpm=speech_rate_wpm,
         mean_f0_hz=mean_f0,
+        median_f0_hz=median_f0,
         f0_std_hz=f0_std,
+        f0_std_semitones=f0_std_st,
         mean_intensity_db=mean_int,
         intensity_std_db=int_std,
+        intensity_range_db=int_range,
         word_prominence_z=prominence,
         global_phone_duration_mean=g_mean,
         global_phone_duration_std=max(g_std, 1e-6),

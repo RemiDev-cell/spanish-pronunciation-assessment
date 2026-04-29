@@ -15,7 +15,7 @@ heuristic limits. It is not an absolute judge of phoneme correctness.
 |------|------------------|-------------------|
 | ASR gate | Whisper transcripts for model and learner vs the shared script | Thresholds for warn/reject; partial match boost |
 | MFA | Word/phone time boundaries for both recordings under the same script | MFA aligns to the expected transcript; it does not prove what was truly produced |
-| Prosody | F0 and intensity samples inside aligned intervals; pause lengths between aligned words | Raw intensity is sensitive to microphone, gain, and speaker distance |
+| Prosody | F0 and intensity samples inside aligned intervals; F0 spread normalized in semitones; pause lengths between aligned words | Raw intensity is sensitive to microphone, gain, and speaker distance |
 | Lexical stress | Text stress from **silabeador** vs acoustic prominence in word sub-intervals | “Syllable” windows are proportional to grapheme length, not true signal syllable boundaries |
 | Reference comparison | Per-word durations, pauses, prominence, global tempo, and F0 variability vs model | Thresholds and penalties are fixed MVP heuristics, not empirically calibrated |
 | Segmental timing | Phone duration distributions from MFA intervals | Duration outliers indicate possible issues, not categorical substitutions or omissions |
@@ -78,6 +78,7 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
   Without `--output`, they are copied under `data/output/aligned_textgrids/`.
 - `audio_quality` with the model and learner quality-gate measurements.
 - `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
+  F0 spread includes a semitone-normalized value so intonation comparison is less sensitive to speaker pitch.
 
 Flags:
 
@@ -134,7 +135,7 @@ not psychometric measurements.
 
 Short term:
 
-- Normalize F0 and intensity before comparing prosodic features.
+- Use normalized intensity/prosody features in lexical-stress prominence scoring.
 - Add lightweight diagnostic plots for timing, pauses, and F0.
 
 Medium term:

@@ -106,8 +106,11 @@ def compute_domain_scores(
         pen_flu += w["fluency"]
         pen_intel += w["intel"]
 
-    # Global prosody nudge from f0 variability
-    if feat.f0_std_hz is not None and feat.f0_std_hz < 10:
+    # Global prosody nudge from f0 variability. Prefer semitones to reduce speaker-pitch bias.
+    if feat.f0_std_semitones is not None:
+        if feat.f0_std_semitones < 1.0:
+            pen_pros += 0.8
+    elif feat.f0_std_hz is not None and feat.f0_std_hz < 10:
         pen_pros += 0.8
 
     # Cap penalties

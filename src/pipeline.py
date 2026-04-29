@@ -56,9 +56,12 @@ def _feature_summary(feat: FeatureBundle) -> dict[str, Any]:
         "pause_durations_sec": feat.pause_durations,
         "speech_rate_wpm": feat.speech_rate_wpm,
         "mean_f0_hz": feat.mean_f0_hz,
+        "median_f0_hz": feat.median_f0_hz,
         "f0_std_hz": feat.f0_std_hz,
+        "f0_std_semitones": feat.f0_std_semitones,
         "mean_intensity_db": feat.mean_intensity_db,
         "intensity_std_db": feat.intensity_std_db,
+        "intensity_range_db": feat.intensity_range_db,
         "global_phone_duration_mean_sec": feat.global_phone_duration_mean,
         "global_phone_duration_std_sec": feat.global_phone_duration_std,
         "word_prominence_z": feat.word_prominence_z,
@@ -90,12 +93,18 @@ def _raw_metrics_payload(
             "f0_std_hz_delta": None
             if model.f0_std_hz is None or learner.f0_std_hz is None
             else learner.f0_std_hz - model.f0_std_hz,
+            "f0_std_semitones_delta": None
+            if model.f0_std_semitones is None or learner.f0_std_semitones is None
+            else learner.f0_std_semitones - model.f0_std_semitones,
             "mean_f0_hz_delta": None
             if model.mean_f0_hz is None or learner.mean_f0_hz is None
             else learner.mean_f0_hz - model.mean_f0_hz,
             "mean_intensity_db_delta": None
             if model.mean_intensity_db is None or learner.mean_intensity_db is None
             else learner.mean_intensity_db - model.mean_intensity_db,
+            "intensity_range_db_delta": None
+            if model.intensity_range_db is None or learner.intensity_range_db is None
+            else learner.intensity_range_db - model.intensity_range_db,
             "pause_duration_deltas_sec": [
                 learner_pauses[i] - model_pauses[i] for i in range(n_pauses)
             ],
