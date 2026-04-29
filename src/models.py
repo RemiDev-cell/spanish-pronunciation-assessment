@@ -181,7 +181,7 @@ class FeatureBundle(BaseModel):
     intensity_std_db: Optional[float] = None
     intensity_range_db: Optional[float] = None
     word_prominence_z: dict[str, dict[str, Any]] = Field(default_factory=dict)
-    # per-word keys -> syllable index -> {"duration","f0_mean","intensity_mean","prominence_z"}
+    # per-word keys -> syllable index -> normalized duration/F0/intensity prominence details
     global_phone_duration_mean: float = 0.0
     global_phone_duration_std: float = 1.0
     raw_debug: dict[str, Any] = Field(default_factory=dict)
