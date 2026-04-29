@@ -44,7 +44,24 @@ class Settings(BaseSettings):
 
     max_localized_errors: int = 10
 
-    # Long pause vs median pause — HEURISTIC disfluence / boundary confusion
+    # Default product assumption: both recordings are from the same speaker and setup.
+    same_speaker_mode: bool = True
+
+    # Same-speaker comparison thresholds — HEURISTIC, calibration-ready via env.
+    word_duration_ratio_low: float = 0.58
+    word_duration_ratio_high: float = 1.42
+    word_duration_penalty_scale: float = 0.12
+    word_duration_penalty_cap: float = 0.35
+    stress_prominence_delta_threshold: float = 0.85
+    pause_delta_threshold_sec: float = 0.38
+    pause_min_context_sec: float = 0.12
+    speech_rate_ratio_low: float = 0.72
+    speech_rate_ratio_high: float = 1.35
+    f0_std_min_hz_for_intonation: float = 10.0
+    f0_std_ratio_low: float = 0.55
+    low_f0_std_hz_threshold: float = 10.0
+
+    # Legacy single-audio heuristics retained for unused compatibility helpers.
     pause_outlier_multiplier: float = 2.8
     min_words_for_pause_stats: int = 3
 

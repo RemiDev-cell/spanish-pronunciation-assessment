@@ -68,6 +68,14 @@ def _zscore_values(values: list[float | None]) -> list[float]:
     return [0.0 if v is None else float((v - mu) / sd) for v in values]
 
 
+def _same_speaker_prominence_score(
+    duration_sec: float,
+    f0_mean_hz: float | None,
+    intensity_mean_db: float | None,
+) -> float:
+    return duration_sec + 0.004 * (f0_mean_hz or 0.0) + 0.06 * (intensity_mean_db or 0.0)
+
+
 def extract_features(
     wav_path: str,
     alignment: AlignmentResult,
@@ -111,7 +119,6 @@ def extract_features(
         st_values = [12.0 * math.log2(f / median_f0) for f in all_f0 if f > 0]
         f0_std_st = float(pstdev(st_values)) if len(st_values) > 1 else 0.0
     mean_int = float(mean(all_db)) if all_db else None
-    median_int = float(median(all_db)) if all_db else None
     int_std = float(pstdev(all_db)) if len(all_db) > 1 else (0.0 if all_db else None)
     int_range = None
     if all_db:
@@ -138,33 +145,23 @@ def extract_features(
             dur = max(0.0, b - a)
             fm = float(mean(f0_loc)) if f0_loc else None
             im = float(mean(db_loc)) if db_loc else None
-            f0_st = (
-                12.0 * math.log2(fm / median_f0)
-                if fm is not None and median_f0 is not None and median_f0 > 0
-                else None
-            )
-            int_rel = im - median_int if im is not None and median_int is not None else None
             syl_feats.append(
                 {
                     "start": a,
                     "end": b,
                     "f0_mean": fm,
-                    "f0_mean_semitones_from_median": f0_st,
                     "intensity_mean": im,
-                    "intensity_mean_relative_db": int_rel,
                     "duration": dur,
                 }
             )
-        dur_z = _zscore_values([float(s["duration"]) for s in syl_feats])
-        f0_z = _zscore_values([s.get("f0_mean_semitones_from_median") for s in syl_feats])
-        int_z = _zscore_values([s.get("intensity_mean_relative_db") for s in syl_feats])
         raw_scores: list[float] = []
         for si, sf in enumerate(syl_feats):
-            raw = 0.45 * dur_z[si] + 0.30 * f0_z[si] + 0.25 * int_z[si]
-            sf["duration_prominence_z"] = dur_z[si]
-            sf["f0_prominence_z"] = f0_z[si]
-            sf["intensity_prominence_z"] = int_z[si]
-            sf["prominence_raw_score"] = float(raw)
+            raw = _same_speaker_prominence_score(
+                float(sf["duration"]),
+                sf.get("f0_mean"),
+                sf.get("intensity_mean"),
+            )
+            sf["prominence_raw_score"] = raw
             raw_scores.append(float(raw))
         mu = float(mean(raw_scores)) if raw_scores else 0.0
         sd = float(pstdev(raw_scores)) if len(raw_scores) > 1 else 1e-6

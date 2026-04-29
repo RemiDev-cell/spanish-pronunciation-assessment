@@ -56,7 +56,7 @@ def test_reference_pair_detects_stress_gap():
     assert "syllabe_tonique_pas_assez_saillante" in types
 
 
-def test_reference_pair_uses_semitone_f0_spread_for_intonation():
+def test_reference_pair_uses_direct_hz_f0_spread_for_same_speaker_intonation():
     settings = get_settings()
     exp = [WordExpectation(surface="hola", syllables=["ho", "la"], stressed_syllable_index=0)]
     align_model = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
@@ -71,7 +71,7 @@ def test_reference_pair_uses_semitone_f0_spread_for_intonation():
     feat_learner = FeatureBundle(
         word_prominence_z={"0:hola": _prom_bundle([1.2, -0.4], 0, "hola")},
         speech_rate_wpm=120.0,
-        f0_std_hz=28.0,
+        f0_std_hz=14.0,
         f0_std_semitones=1.0,
     )
 
@@ -83,4 +83,4 @@ def test_reference_pair_uses_semitone_f0_spread_for_intonation():
         issue for issue in issues if issue.error_type.value == "intonation_non_conforme"
     ]
     assert len(intonation_issues) == 1
-    assert "demi-tons" in intonation_issues[0].observed
+    assert "Hz" in intonation_issues[0].observed

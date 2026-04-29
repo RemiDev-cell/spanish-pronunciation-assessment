@@ -1,23 +1,38 @@
 # Spanish comparative pronunciation assessment MVP
 
-Production-minded **MVP** for comparing a Spanish learner recording with a model
-reference recording of the **same provided script**.
+Production-minded **MVP** for comparing two Spanish recordings of the **same
+speaker**, same equipment, same acoustic environment, and same provided script.
+The speaker first records a personal reference performance, then later records
+the production to evaluate.
 
 The pipeline chains **Whisper** for reading validation, **Montreal Forced Aligner**
 (MFA) for word/phone timing, **Parselmouth/Praat** for acoustic features, and
 **silabeador** for lexical stress expectations. The report is a comparative aid:
-it surfaces acoustic and temporal deltas against the reference, with explicit
-heuristic limits. It is not an absolute judge of phoneme correctness.
+it surfaces acoustic and temporal deltas against the speaker's own reference,
+with explicit heuristic limits. It is not an absolute judge of phoneme correctness.
+
+## Core use case assumption
+
+This tool assumes a **same-speaker reference pair**:
+
+- the reference and learner/evaluated recordings are made by the same person;
+- the microphone, gain, room, and recording workflow are kept stable;
+- differences in F0, intensity, timing, and vowel acoustics are therefore treated as production differences, not anatomical speaker differences.
+
+Inter-speaker normalization is intentionally disabled for decision logic. Direct
+Hz, dB, and duration comparisons are meaningful under this protocol. Quality
+checks such as clipping and silence detection remain guardrails, not bias
+correctors.
 
 ## What is actually measured vs heuristic
 
 | Layer | What is measured | What is heuristic |
 |------|------------------|-------------------|
-| ASR gate | Whisper transcripts for model and learner vs the shared script | Thresholds for warn/reject; partial match boost |
+| ASR gate | Whisper transcripts for reference and evaluated audio vs the shared script | Thresholds for warn/reject; partial match boost |
 | MFA | Word/phone time boundaries for both recordings under the same script | MFA aligns to the expected transcript; it does not prove what was truly produced |
-| Prosody | F0 and intensity samples inside aligned intervals; F0 spread normalized in semitones; pause lengths between aligned words | Raw intensity is sensitive to microphone, gain, and speaker distance |
-| Lexical stress | Text stress from **silabeador** vs normalized duration/F0/intensity prominence in word sub-intervals | “Syllable” windows are proportional to grapheme length, not true signal syllable boundaries |
-| Reference comparison | Per-word durations, pauses, prominence, global tempo, and F0 variability vs model | Thresholds and penalties are fixed MVP heuristics, not empirically calibrated |
+| Prosody | F0 and intensity samples inside aligned intervals; pause lengths between aligned words | Assumes same speaker/setup, so direct Hz and dB deltas are interpretable |
+| Lexical stress | Text stress from **silabeador** vs same-speaker duration/F0/intensity prominence in word sub-intervals | “Syllable” windows are proportional to grapheme length, not true signal syllable boundaries |
+| Reference comparison | Per-word durations, pauses, prominence, global tempo, and F0 variability vs personal reference | Thresholds are configurable but not yet empirically calibrated |
 | Segmental timing | Phone duration distributions from MFA intervals | Duration outliers indicate possible issues, not categorical substitutions or omissions |
 
 ## Current limits
@@ -57,15 +72,19 @@ pip install -e ".[dev]"
 ```
 
 Optional: copy `.env.example` to `.env` and adjust thresholds or MFA model names.
+Same-speaker comparison thresholds are exposed through `SPANISH_PHON_*` settings
+such as `SPANISH_PHON_WORD_DURATION_RATIO_LOW`,
+`SPANISH_PHON_STRESS_PROMINENCE_DELTA_THRESHOLD`, and
+`SPANISH_PHON_F0_STD_RATIO_LOW`.
 
 ## CLI
 
-The CLI requires three inputs: model reference audio, learner audio, and the shared
-Spanish script.
+The CLI requires three inputs: the speaker's personal reference audio, the later
+evaluated audio, and the shared Spanish script.
 
 ```bash
 python -m src.pipeline \
-  --reference-audio path/to/reference_model.wav \
+  --reference-audio path/to/self_reference.wav \
   --audio path/to/learner.wav \
   --text "El mismo guion leído por los dos." \
   --output data/output/report_pair.json
@@ -80,8 +99,8 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
 - `audio_quality` with the model and learner quality-gate measurements.
   It includes duration, RMS, high-frequency energy ratio, clipping ratio, and silence ratio.
 - `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
-  F0 spread includes a semitone-normalized value so intonation comparison is less sensitive to speaker pitch.
-  Syllable prominence exposes normalized duration, F0, and intensity components.
+  `raw_metrics.assumptions` records that same-speaker mode is active and inter-speaker normalization is disabled.
+  Syllable prominence exposes direct duration, F0, and intensity components.
 
 Flags:
 
@@ -139,7 +158,7 @@ not psychometric measurements.
 Short term:
 
 - Add lightweight diagnostic plots for timing, pauses, and F0.
-- Begin syllable-to-phone grouping to replace proportional syllable windows.
+- Add vowel F1/F2 deltas for same-speaker vowel-quality comparison.
 
 Medium term:
 

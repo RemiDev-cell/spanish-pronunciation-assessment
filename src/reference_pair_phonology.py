@@ -69,7 +69,7 @@ def collect_reference_pair_issues(
             ratio = d_learner / d_model
         else:
             ratio = 1.0
-        if ratio > 1.42 or ratio < 0.58:
+        if ratio > settings.word_duration_ratio_high or ratio < settings.word_duration_ratio_low:
             issues.append(
                 PhonologyIssue(
                     error_type=LocalizedErrorType.DEBIT_INADAPTE,
@@ -85,7 +85,10 @@ def collect_reference_pair_issues(
                     perceptual_effect="Écart de tempo local vs locuteur de référence.",
                     correction="Rapprocher le débit segmentaire du modèle sans caricature.",
                     priority="moyenne",
-                    score_penalty_hint=min(0.35, abs(math.log(ratio + 1e-6)) * 0.12),
+                    score_penalty_hint=min(
+                        settings.word_duration_penalty_cap,
+                        abs(math.log(ratio + 1e-6)) * settings.word_duration_penalty_scale,
+                    ),
                 )
             )
 
@@ -127,7 +130,7 @@ def collect_reference_pair_issues(
                     score_penalty_hint=0.42,
                 )
             )
-        elif z_model[exp_idx] - z_learner[exp_idx] > 0.85:
+        elif z_model[exp_idx] - z_learner[exp_idx] > settings.stress_prominence_delta_threshold:
             issues.append(
                 PhonologyIssue(
                     error_type=LocalizedErrorType.SYLLABE_TONIQUE_PAS_ASSEZ_SAILLANTE,
@@ -152,7 +155,10 @@ def collect_reference_pair_issues(
     pa_learner = feat_learner.pause_durations
     for j in range(min(len(pa_model), len(pa_learner))):
         diff = abs(pa_learner[j] - pa_model[j])
-        if diff > 0.38 and max(pa_model[j], pa_learner[j]) > 0.12:
+        if (
+            diff > settings.pause_delta_threshold_sec
+            and max(pa_model[j], pa_learner[j]) > settings.pause_min_context_sec
+        ):
             issues.append(
                 PhonologyIssue(
                     error_type=LocalizedErrorType.PAUSE_MAL_PLACEE,
@@ -176,7 +182,7 @@ def collect_reference_pair_issues(
     r_wpm = 1.0
     if feat_model.speech_rate_wpm > 1e-3:
         r_wpm = feat_learner.speech_rate_wpm / feat_model.speech_rate_wpm
-    if r_wpm < 0.72 or r_wpm > 1.35:
+    if r_wpm < settings.speech_rate_ratio_low or r_wpm > settings.speech_rate_ratio_high:
         issues.append(
             PhonologyIssue(
                 error_type=LocalizedErrorType.DEBIT_INADAPTE,
@@ -195,36 +201,26 @@ def collect_reference_pair_issues(
             )
         )
 
-    # Intonation variability vs reference. Prefer semitone spread to reduce speaker-pitch bias.
-    model_f0_spread = feat_model.f0_std_semitones
-    learner_f0_spread = feat_learner.f0_std_semitones
-    f0_unit = "demi-tons"
-    f0_threshold = 1.0
-    if model_f0_spread is None or learner_f0_spread is None:
-        model_f0_spread = feat_model.f0_std_hz
-        learner_f0_spread = feat_learner.f0_std_hz
-        f0_unit = "Hz"
-        f0_threshold = 10.0
-
+    # Same-speaker mode: direct F0-Hz variability deltas are interpretable.
     if (
-        model_f0_spread is not None
-        and learner_f0_spread is not None
-        and model_f0_spread > f0_threshold
-        and learner_f0_spread < 0.55 * model_f0_spread
+        feat_model.f0_std_hz is not None
+        and feat_learner.f0_std_hz is not None
+        and feat_model.f0_std_hz > settings.f0_std_min_hz_for_intonation
+        and feat_learner.f0_std_hz < settings.f0_std_ratio_low * feat_model.f0_std_hz
     ):
         issues.append(
             PhonologyIssue(
                 error_type=LocalizedErrorType.INTONATION_NON_CONFORME,
                 target_unit="phrase",
-                precise_location=f"f0_std_{f0_unit}_vs_reference",
+                precise_location="f0_std_hz_vs_reference",
                 confidence=0.42,
                 observation=(
                     "Variabilité F0 de l'apprenant nettement plus faible que la référence "
-                    f"(σ_learner≈{learner_f0_spread:.1f} {f0_unit} vs "
-                    f"σ_model≈{model_f0_spread:.1f} {f0_unit})."
+                    f"(σ_learner≈{feat_learner.f0_std_hz:.1f} Hz vs "
+                    f"σ_model≈{feat_model.f0_std_hz:.1f} Hz)."
                 ),
-                observed=f"σ_F0 learner={learner_f0_spread:.1f} {f0_unit}",
-                expected=f"σ_F0 model={model_f0_spread:.1f} {f0_unit}",
+                observed=f"σ_F0 learner={feat_learner.f0_std_hz:.1f} Hz",
+                expected=f"σ_F0 model={feat_model.f0_std_hz:.1f} Hz",
                 perceptual_effect="Moins de relief mélodique que le locuteur de référence.",
                 correction="Introduire des variations de hauteur plus proches du modèle (sans copier la voix).",
                 priority="basse",

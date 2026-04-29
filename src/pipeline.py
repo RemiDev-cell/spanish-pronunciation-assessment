@@ -78,11 +78,17 @@ def _safe_ratio(numerator: float, denominator: float) -> Optional[float]:
 def _raw_metrics_payload(
     model: FeatureBundle,
     learner: FeatureBundle,
+    settings: Settings,
 ) -> dict[str, Any]:
     model_pauses = model.pause_durations
     learner_pauses = learner.pause_durations
     n_pauses = min(len(model_pauses), len(learner_pauses))
     return {
+        "assumptions": {
+            "same_speaker_mode": settings.same_speaker_mode,
+            "same_equipment_and_environment": settings.same_speaker_mode,
+            "inter_speaker_normalization_enabled": False,
+        },
         "model": _feature_summary(model),
         "learner": _feature_summary(learner),
         "deltas": {
@@ -155,7 +161,7 @@ def evaluate_reference_pair(
     artifact_dir: Optional[Path] = None,
 ) -> EvaluationReport:
     """
-    Same script read by reference (model) and learner.
+    Same script read by the same speaker: personal reference and later evaluated take.
     HEURISTIC: deltas are acoustic/temporal vs reference MFA alignment, not native G2P truth.
     """
     expected_norm = normalize_expected_text(expected_text)
@@ -348,15 +354,15 @@ def evaluate_reference_pair(
         asr_model_text=asr_model.text,
         alignment_artifacts=alignment_artifacts,
         audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-        raw_metrics=_raw_metrics_payload(feat_model, feat_learner),
+        raw_metrics=_raw_metrics_payload(feat_model, feat_learner, settings),
     )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(
         description=(
-            "Spanish comparative pronunciation assessment: learner audio vs reference "
-            "model audio with the same script."
+            "Spanish same-speaker pronunciation assessment: evaluated audio vs personal "
+            "reference audio with the same script."
         )
     )
     p.add_argument(
@@ -369,7 +375,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--reference-audio",
         type=Path,
         required=True,
-        help="Reference model reading of the same script.",
+        help="Same speaker's personal reference reading of the same script.",
     )
     p.add_argument("--text", required=True, help="Shared Spanish script (same words for both recordings).")
     p.add_argument("--output", type=Path, default=None, help="Write JSON report to this path.")
