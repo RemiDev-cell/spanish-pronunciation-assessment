@@ -74,6 +74,8 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
 `asr_model_text`, and `asr_text` for the learner. It also exposes audit fields:
 
 - `alignment_artifacts` with model and learner TextGrid paths when MFA alignment succeeds.
+  With `--output`, TextGrids are copied to `aligned_textgrids/` next to the report.
+  Without `--output`, they are copied under `data/output/aligned_textgrids/`.
 - `audio_quality` with the model and learner quality-gate measurements.
 - `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
 
@@ -133,7 +135,7 @@ not psychometric measurements.
 Short term:
 
 - Normalize F0 and intensity before comparing prosodic features.
-- Copy aligned TextGrids into a stable output directory instead of only reporting temporary paths.
+- Add lightweight diagnostic plots for timing, pauses, and F0.
 
 Medium term:
 

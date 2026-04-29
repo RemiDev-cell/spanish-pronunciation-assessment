@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import traceback
 import uuid
 from pathlib import Path
@@ -12,7 +13,13 @@ from src.align import run_mfa_align
 from src.asr_validation import validate_asr_against_expected
 from src.config import Settings, get_settings
 from src.features import count_voiced_pitch_frames, extract_features
-from src.models import AudioQualityReport, EvaluationReport, EvaluationStatus, FeatureBundle
+from src.models import (
+    AlignmentResult,
+    AudioQualityReport,
+    EvaluationReport,
+    EvaluationStatus,
+    FeatureBundle,
+)
 from src.preprocess import ensure_mono_wav
 from src.reference_pair_phonology import collect_reference_pair_issues
 from src.reporting import assemble_report, non_evaluable_report
@@ -96,6 +103,37 @@ def _raw_metrics_payload(
     }
 
 
+def _alignment_artifacts_payload(
+    model_alignment: AlignmentResult,
+    learner_alignment: AlignmentResult,
+    artifact_dir: Optional[Path],
+    job_id: str,
+) -> dict[str, str]:
+    model_tg = model_alignment.textgrid_path or ""
+    learner_tg = learner_alignment.textgrid_path or ""
+    payload = {
+        "model_textgrid_path": model_tg,
+        "learner_textgrid_path": learner_tg,
+    }
+    if artifact_dir is None or not model_tg or not learner_tg:
+        return payload
+
+    try:
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        model_dst = artifact_dir / f"{job_id}_model.TextGrid"
+        learner_dst = artifact_dir / f"{job_id}_learner.TextGrid"
+        shutil.copy2(model_tg, model_dst)
+        shutil.copy2(learner_tg, learner_dst)
+    except OSError as e:
+        payload["artifact_copy_error"] = str(e)
+        return payload
+
+    return {
+        "model_textgrid_path": str(model_dst),
+        "learner_textgrid_path": str(learner_dst),
+    }
+
+
 def evaluate_reference_pair(
     model_audio_path: Path,
     learner_audio_path: Path,
@@ -105,6 +143,7 @@ def evaluate_reference_pair(
     strict_text_match: bool,
     allow_partial_match: bool,
     debug: bool,
+    artifact_dir: Optional[Path] = None,
 ) -> EvaluationReport:
     """
     Same script read by reference (model) and learner.
@@ -219,6 +258,12 @@ def evaluate_reference_pair(
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             **ctx,
         )
+    alignment_artifacts = _alignment_artifacts_payload(
+        align_model,
+        align_learner,
+        artifact_dir,
+        job,
+    )
 
     try:
         if settings.require_parselmouth:
@@ -230,10 +275,7 @@ def evaluate_reference_pair(
                     asr_model_text=asr_model.text,
                     warnings=["model:no_voiced_segments"],
                     audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-                    alignment_artifacts={
-                        "model_textgrid_path": align_model.textgrid_path or "",
-                        "learner_textgrid_path": align_learner.textgrid_path or "",
-                    },
+                    alignment_artifacts=alignment_artifacts,
                     **ctx,
                 )
             if count_voiced_pitch_frames(str(wav_learner)) < 5:
@@ -244,10 +286,7 @@ def evaluate_reference_pair(
                     asr_model_text=asr_model.text,
                     warnings=["learner:no_voiced_segments"],
                     audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-                    alignment_artifacts={
-                        "model_textgrid_path": align_model.textgrid_path or "",
-                        "learner_textgrid_path": align_learner.textgrid_path or "",
-                    },
+                    alignment_artifacts=alignment_artifacts,
                     **ctx,
                 )
     except Exception as e:
@@ -259,10 +298,7 @@ def evaluate_reference_pair(
                 asr_model_text=asr_model.text,
                 warnings=["parselmouth_pitch_failed"],
                 audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-                alignment_artifacts={
-                    "model_textgrid_path": align_model.textgrid_path or "",
-                    "learner_textgrid_path": align_learner.textgrid_path or "",
-                },
+                alignment_artifacts=alignment_artifacts,
                 **ctx,
             )
 
@@ -279,10 +315,7 @@ def evaluate_reference_pair(
             asr_model_text=asr_model.text,
             warnings=["feature_extraction_failed"],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-            alignment_artifacts={
-                "model_textgrid_path": align_model.textgrid_path or "",
-                "learner_textgrid_path": align_learner.textgrid_path or "",
-            },
+            alignment_artifacts=alignment_artifacts,
             **ctx,
         )
 
@@ -304,10 +337,7 @@ def evaluate_reference_pair(
         model_audio_path=model_s,
         learner_audio_path=learner_s,
         asr_model_text=asr_model.text,
-        alignment_artifacts={
-            "model_textgrid_path": align_model.textgrid_path or "",
-            "learner_textgrid_path": align_learner.textgrid_path or "",
-        },
+        alignment_artifacts=alignment_artifacts,
         audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
         raw_metrics=_raw_metrics_payload(feat_model, feat_learner),
     )
@@ -348,6 +378,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = p.parse_args(argv)
 
     settings = get_settings()
+    artifact_dir = (
+        args.output.expanduser().resolve().parent
+        if args.output
+        else settings.output_dir
+    ) / "aligned_textgrids"
 
     report = evaluate_reference_pair(
         args.reference_audio.expanduser().resolve(),
@@ -357,6 +392,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         strict_text_match=bool(args.strict_text_match),
         allow_partial_match=bool(args.allow_partial_match),
         debug=bool(args.debug),
+        artifact_dir=artifact_dir,
     )
 
     text = report.model_dump_json(indent=2)
