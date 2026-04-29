@@ -71,7 +71,11 @@ python -m src.pipeline \
 ```
 
 The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
-`asr_model_text`, and `asr_text` for the learner.
+`asr_model_text`, and `asr_text` for the learner. It also exposes audit fields:
+
+- `alignment_artifacts` with model and learner TextGrid paths when MFA alignment succeeds.
+- `audio_quality` with the model and learner quality-gate measurements.
+- `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
 
 Flags:
 
@@ -128,9 +132,8 @@ not psychometric measurements.
 
 Short term:
 
-- Expose raw model/learner/delta metrics in the JSON report.
-- Store or copy model and learner TextGrid paths into the report.
 - Normalize F0 and intensity before comparing prosodic features.
+- Copy aligned TextGrids into a stable output directory instead of only reporting temporary paths.
 
 Medium term:
 

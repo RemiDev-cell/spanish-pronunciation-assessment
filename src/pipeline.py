@@ -6,13 +6,13 @@ import argparse
 import traceback
 import uuid
 from pathlib import Path
-from typing import List, Literal, Optional, cast
+from typing import Any, List, Literal, Optional, cast
 
 from src.align import run_mfa_align
 from src.asr_validation import validate_asr_against_expected
 from src.config import Settings, get_settings
 from src.features import count_voiced_pitch_frames, extract_features
-from src.models import EvaluationReport, EvaluationStatus
+from src.models import AudioQualityReport, EvaluationReport, EvaluationStatus, FeatureBundle
 from src.preprocess import ensure_mono_wav
 from src.reference_pair_phonology import collect_reference_pair_issues
 from src.reporting import assemble_report, non_evaluable_report
@@ -27,6 +27,73 @@ def _merge_asr_status(a: EvaluationStatus, b: EvaluationStatus) -> EvaluationSta
     if a == EvaluationStatus.EVALUABLE_WITH_WARNING or b == EvaluationStatus.EVALUABLE_WITH_WARNING:
         return EvaluationStatus.EVALUABLE_WITH_WARNING
     return EvaluationStatus.EVALUABLE
+
+
+def _audio_quality_payload(
+    *,
+    model: Optional[AudioQualityReport] = None,
+    learner: Optional[AudioQualityReport] = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    if model is not None:
+        payload["model"] = model.model_dump()
+    if learner is not None:
+        payload["learner"] = learner.model_dump()
+    return payload
+
+
+def _feature_summary(feat: FeatureBundle) -> dict[str, Any]:
+    return {
+        "word_durations_sec": feat.word_durations,
+        "phone_durations_sec": feat.phone_durations,
+        "pause_durations_sec": feat.pause_durations,
+        "speech_rate_wpm": feat.speech_rate_wpm,
+        "mean_f0_hz": feat.mean_f0_hz,
+        "f0_std_hz": feat.f0_std_hz,
+        "mean_intensity_db": feat.mean_intensity_db,
+        "intensity_std_db": feat.intensity_std_db,
+        "global_phone_duration_mean_sec": feat.global_phone_duration_mean,
+        "global_phone_duration_std_sec": feat.global_phone_duration_std,
+        "word_prominence_z": feat.word_prominence_z,
+        "raw_debug": feat.raw_debug,
+    }
+
+
+def _safe_ratio(numerator: float, denominator: float) -> Optional[float]:
+    if abs(denominator) < 1e-9:
+        return None
+    return numerator / denominator
+
+
+def _raw_metrics_payload(
+    model: FeatureBundle,
+    learner: FeatureBundle,
+) -> dict[str, Any]:
+    model_pauses = model.pause_durations
+    learner_pauses = learner.pause_durations
+    n_pauses = min(len(model_pauses), len(learner_pauses))
+    return {
+        "model": _feature_summary(model),
+        "learner": _feature_summary(learner),
+        "deltas": {
+            "speech_rate_wpm_delta": learner.speech_rate_wpm - model.speech_rate_wpm,
+            "speech_rate_wpm_ratio_learner_over_model": _safe_ratio(
+                learner.speech_rate_wpm, model.speech_rate_wpm
+            ),
+            "f0_std_hz_delta": None
+            if model.f0_std_hz is None or learner.f0_std_hz is None
+            else learner.f0_std_hz - model.f0_std_hz,
+            "mean_f0_hz_delta": None
+            if model.mean_f0_hz is None or learner.mean_f0_hz is None
+            else learner.mean_f0_hz - model.mean_f0_hz,
+            "mean_intensity_db_delta": None
+            if model.mean_intensity_db is None or learner.mean_intensity_db is None
+            else learner.mean_intensity_db - model.mean_intensity_db,
+            "pause_duration_deltas_sec": [
+                learner_pauses[i] - model_pauses[i] for i in range(n_pauses)
+            ],
+        },
+    }
 
 
 def evaluate_reference_pair(
@@ -73,6 +140,7 @@ def evaluate_reference_pair(
             reason=f"model_audio_quality:{q_model.reason}",
             expected_text=expected_norm,
             warnings=[f"model:{q_model.reason}"],
+            audio_quality=_audio_quality_payload(model=q_model),
             **ctx,
         )
     if not q_learner.is_evaluable:
@@ -80,6 +148,7 @@ def evaluate_reference_pair(
             reason=f"learner_audio_quality:{q_learner.reason}",
             expected_text=expected_norm,
             warnings=[f"learner:{q_learner.reason}"],
+            audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             **ctx,
         )
 
@@ -93,6 +162,7 @@ def evaluate_reference_pair(
             reason=f"whisper_failed:{e}",
             expected_text=expected_norm,
             warnings=["whisper_failed"],
+            audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             **ctx,
         )
 
@@ -115,6 +185,7 @@ def evaluate_reference_pair(
                 f"asr_similarity_model={v_model.similarity:.1f}",
                 f"asr_similarity_learner={v_learner.similarity:.1f}",
             ],
+            audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             **ctx,
         )
 
@@ -145,6 +216,7 @@ def evaluate_reference_pair(
             asr_text=asr_learner.text,
             asr_model_text=asr_model.text,
             warnings=[str(e)],
+            audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             **ctx,
         )
 
@@ -157,6 +229,11 @@ def evaluate_reference_pair(
                     asr_text=asr_learner.text,
                     asr_model_text=asr_model.text,
                     warnings=["model:no_voiced_segments"],
+                    audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+                    alignment_artifacts={
+                        "model_textgrid_path": align_model.textgrid_path or "",
+                        "learner_textgrid_path": align_learner.textgrid_path or "",
+                    },
                     **ctx,
                 )
             if count_voiced_pitch_frames(str(wav_learner)) < 5:
@@ -166,6 +243,11 @@ def evaluate_reference_pair(
                     asr_text=asr_learner.text,
                     asr_model_text=asr_model.text,
                     warnings=["learner:no_voiced_segments"],
+                    audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+                    alignment_artifacts={
+                        "model_textgrid_path": align_model.textgrid_path or "",
+                        "learner_textgrid_path": align_learner.textgrid_path or "",
+                    },
                     **ctx,
                 )
     except Exception as e:
@@ -176,6 +258,11 @@ def evaluate_reference_pair(
                 asr_text=asr_learner.text,
                 asr_model_text=asr_model.text,
                 warnings=["parselmouth_pitch_failed"],
+                audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+                alignment_artifacts={
+                    "model_textgrid_path": align_model.textgrid_path or "",
+                    "learner_textgrid_path": align_learner.textgrid_path or "",
+                },
                 **ctx,
             )
 
@@ -191,6 +278,11 @@ def evaluate_reference_pair(
             asr_text=asr_learner.text,
             asr_model_text=asr_model.text,
             warnings=["feature_extraction_failed"],
+            audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+            alignment_artifacts={
+                "model_textgrid_path": align_model.textgrid_path or "",
+                "learner_textgrid_path": align_learner.textgrid_path or "",
+            },
             **ctx,
         )
 
@@ -212,6 +304,12 @@ def evaluate_reference_pair(
         model_audio_path=model_s,
         learner_audio_path=learner_s,
         asr_model_text=asr_model.text,
+        alignment_artifacts={
+            "model_textgrid_path": align_model.textgrid_path or "",
+            "learner_textgrid_path": align_learner.textgrid_path or "",
+        },
+        audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+        raw_metrics=_raw_metrics_payload(feat_model, feat_learner),
     )
 
 

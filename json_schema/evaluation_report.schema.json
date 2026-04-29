@@ -264,6 +264,23 @@
       },
       "title": "Warnings",
       "type": "array"
+    },
+    "alignment_artifacts": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Alignment Artifacts",
+      "type": "object"
+    },
+    "audio_quality": {
+      "additionalProperties": true,
+      "title": "Audio Quality",
+      "type": "object"
+    },
+    "raw_metrics": {
+      "additionalProperties": true,
+      "title": "Raw Metrics",
+      "type": "object"
     }
   },
   "required": [

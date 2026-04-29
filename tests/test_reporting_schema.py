@@ -48,5 +48,9 @@ def test_sample_report_validates_against_schema():
         settings=get_settings(),
     )
     instance = json.loads(report.model_dump_json())
+    assert instance["comparison_type"] == "audio_vs_reference_audio"
+    assert "alignment_artifacts" in instance
+    assert "audio_quality" in instance
+    assert "raw_metrics" in instance
     v = _validator()
     v.validate(instance)

@@ -105,6 +105,9 @@ class EvaluationReport(BaseModel):
     expected_text: str = ""
     asr_text: str = ""
     warnings: list[str] = Field(default_factory=list)
+    alignment_artifacts: dict[str, str] = Field(default_factory=dict)
+    audio_quality: dict[str, Any] = Field(default_factory=dict)
+    raw_metrics: dict[str, Any] = Field(default_factory=dict)
 
     def model_dump_json_pretty(self) -> str:
         return self.model_dump_json(indent=2, exclude_none=True)

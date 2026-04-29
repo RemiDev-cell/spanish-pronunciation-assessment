@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 from src.config import Settings
 from src.models import (
@@ -106,6 +106,9 @@ def assemble_report(
     model_audio_path: str = "",
     learner_audio_path: str = "",
     asr_model_text: str = "",
+    alignment_artifacts: Optional[dict[str, str]] = None,
+    audio_quality: Optional[dict[str, Any]] = None,
+    raw_metrics: Optional[dict[str, Any]] = None,
 ) -> EvaluationReport:
     loc = issues_to_localized_errors(issues, settings)
     return EvaluationReport(
@@ -124,6 +127,9 @@ def assemble_report(
         expected_text=expected_text,
         asr_text=asr_text,
         warnings=warnings,
+        alignment_artifacts=dict(alignment_artifacts or {}),
+        audio_quality=dict(audio_quality or {}),
+        raw_metrics=dict(raw_metrics or {}),
     )
 
 
@@ -137,6 +143,9 @@ def non_evaluable_report(
     model_audio_path: str = "",
     learner_audio_path: str = "",
     asr_model_text: str = "",
+    alignment_artifacts: Optional[dict[str, str]] = None,
+    audio_quality: Optional[dict[str, Any]] = None,
+    raw_metrics: Optional[dict[str, Any]] = None,
 ) -> EvaluationReport:
     ws = list(warnings or [])
     ws.append(reason)
@@ -174,5 +183,8 @@ def non_evaluable_report(
         warnings=ws,
         expected_text=expected_text,
         asr_text=asr_text,
+        alignment_artifacts=dict(alignment_artifacts or {}),
+        audio_quality=dict(audio_quality or {}),
+        raw_metrics=dict(raw_metrics or {}),
         final_summary=f"Non évaluable: {reason}",
     )
