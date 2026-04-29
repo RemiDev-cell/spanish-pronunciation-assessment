@@ -189,27 +189,24 @@
       "type": "string"
     },
     "comparison_type": {
-      "default": "audio_vs_expected_text",
-      "enum": [
-        "audio_vs_expected_text",
-        "audio_vs_reference_audio"
-      ],
+      "const": "audio_vs_reference_audio",
+      "default": "audio_vs_reference_audio",
       "title": "Comparison Type",
       "type": "string"
     },
-    "reference_audio_path": {
+    "model_audio_path": {
       "default": "",
-      "title": "Reference Audio Path",
+      "title": "Model Audio Path",
       "type": "string"
     },
-    "test_audio_path": {
+    "learner_audio_path": {
       "default": "",
-      "title": "Test Audio Path",
+      "title": "Learner Audio Path",
       "type": "string"
     },
-    "asr_reference_text": {
+    "asr_model_text": {
       "default": "",
-      "title": "Asr Reference Text",
+      "title": "Asr Model Text",
       "type": "string"
     },
     "global_scores": {

@@ -67,24 +67,14 @@ def build_priority_issues(errors: list[LocalizedError]) -> list[str]:
     ][:5]
 
 
-def build_strengths(domains: DomainScores, *, reference_pair: bool = False) -> list[str]:
+def build_strengths(domains: DomainScores) -> list[str]:
     strengths: list[str] = []
-    if reference_pair:
-        if domains.lexical_stress.percent_similarity >= 78:
-            strengths.append("Stress / saillance proches du locuteur de référence sur plusieurs mots.")
-        if domains.sentence_prosody.percent_similarity >= 76:
-            strengths.append("Pauses et mouvement prosodique assez alignés avec la référence.")
-        if domains.fluency_and_voice_control.percent_similarity >= 76:
-            strengths.append("Débit global raisonnablement proche de l'enregistrement de référence.")
-    else:
-        if domains.lexical_stress.percent_similarity >= 82:
-            strengths.append("Stress lexical globalement cohérent avec le texte attendu.")
-        if domains.segmental_precision.percent_similarity >= 80:
-            strengths.append("Segmentation temporelle relativement stable (durées segmentales).")
-        if domains.sentence_prosody.percent_similarity >= 78:
-            strengths.append("Prosodie de phrase suffisamment modulée pour guider l'auditeur.")
-        if domains.fluency_and_voice_control.percent_similarity >= 78:
-            strengths.append("Débit et pauses globalement maîtrisés.")
+    if domains.lexical_stress.percent_similarity >= 78:
+        strengths.append("Stress / saillance proches du locuteur de référence sur plusieurs mots.")
+    if domains.sentence_prosody.percent_similarity >= 76:
+        strengths.append("Pauses et mouvement prosodique assez alignés avec la référence.")
+    if domains.fluency_and_voice_control.percent_similarity >= 76:
+        strengths.append("Débit global raisonnablement proche de l'enregistrement de référence.")
     if not strengths:
         strengths.append(
             "Production analysable: poursuivre en ciblant les erreurs localisées ci-dessous."
@@ -92,14 +82,14 @@ def build_strengths(domains: DomainScores, *, reference_pair: bool = False) -> l
     return strengths[:4]
 
 
-def build_final_summary(global_scores: GlobalScores, status: str, *, reference_pair: bool = False) -> str:
+def build_final_summary(global_scores: GlobalScores, status: str) -> str:
     if status == "non_evaluable":
         return "Évaluation non disponible: signal audio ou correspondance texte insuffisante."
-    ctx = "par rapport à la référence audio et au script partagé" if reference_pair else "par rapport au texte attendu"
     return (
         f"Score global {global_scores.score_total_points:.1f}/100 "
         f"({global_scores.percent_similarity:.1f}% de similarité). "
-        f"Évaluation {ctx}: {global_scores.interpretation}."
+        "Évaluation par rapport à la référence audio et au script partagé: "
+        f"{global_scores.interpretation}."
     )
 
 
@@ -113,26 +103,24 @@ def assemble_report(
     global_scores: GlobalScores,
     issues: list[PhonologyIssue],
     settings: Settings,
-    comparison_type: Literal["audio_vs_expected_text", "audio_vs_reference_audio"] = "audio_vs_expected_text",
-    reference_audio_path: str = "",
-    test_audio_path: str = "",
-    asr_reference_text: str = "",
+    model_audio_path: str = "",
+    learner_audio_path: str = "",
+    asr_model_text: str = "",
 ) -> EvaluationReport:
     loc = issues_to_localized_errors(issues, settings)
-    ref_pair = comparison_type == "audio_vs_reference_audio"
     return EvaluationReport(
         evaluation_status=evaluation_status,
-        comparison_type=comparison_type,
-        reference_audio_path=reference_audio_path,
-        test_audio_path=test_audio_path,
-        asr_reference_text=asr_reference_text,
+        comparison_type="audio_vs_reference_audio",
+        model_audio_path=model_audio_path,
+        learner_audio_path=learner_audio_path,
+        asr_model_text=asr_model_text,
         global_scores=global_scores,
         domain_scores=domains,
         localized_errors=loc,
         priority_issues=build_priority_issues(loc),
         feedbacks=build_feedbacks(loc),
-        strengths=build_strengths(domains, reference_pair=ref_pair),
-        final_summary=build_final_summary(global_scores, evaluation_status, reference_pair=ref_pair),
+        strengths=build_strengths(domains),
+        final_summary=build_final_summary(global_scores, evaluation_status),
         expected_text=expected_text,
         asr_text=asr_text,
         warnings=warnings,
@@ -145,10 +133,10 @@ def non_evaluable_report(
     expected_text: str,
     asr_text: str = "",
     warnings: Optional[List[str]] = None,
-    comparison_type: Literal["audio_vs_expected_text", "audio_vs_reference_audio"] = "audio_vs_expected_text",
-    reference_audio_path: str = "",
-    test_audio_path: str = "",
-    asr_reference_text: str = "",
+    comparison_type: Literal["audio_vs_reference_audio"] = "audio_vs_reference_audio",
+    model_audio_path: str = "",
+    learner_audio_path: str = "",
+    asr_model_text: str = "",
 ) -> EvaluationReport:
     ws = list(warnings or [])
     ws.append(reason)
@@ -173,9 +161,9 @@ def non_evaluable_report(
     return EvaluationReport(
         evaluation_status="non_evaluable",
         comparison_type=comparison_type,
-        reference_audio_path=reference_audio_path,
-        test_audio_path=test_audio_path,
-        asr_reference_text=asr_reference_text,
+        model_audio_path=model_audio_path,
+        learner_audio_path=learner_audio_path,
+        asr_model_text=asr_model_text,
         global_scores=GlobalScores(
             score_total_points=0.0,
             percent_similarity=0.0,

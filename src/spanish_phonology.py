@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from statistics import median, pstdev
+from statistics import median
 
 from src.config import Settings
 from src.models import (

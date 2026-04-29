@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import jsonschema
 from jsonschema import validators
 
 from src.config import get_settings

@@ -85,16 +85,16 @@ class FeedbackItem(BaseModel):
     priority: str
 
 
-ComparisonType = Literal["audio_vs_expected_text", "audio_vs_reference_audio"]
+ComparisonType = Literal["audio_vs_reference_audio"]
 
 
 class EvaluationReport(BaseModel):
     evaluation_status: Literal["evaluable", "evaluable_with_warning", "non_evaluable"]
     language: Literal["es"] = "es"
-    comparison_type: ComparisonType = "audio_vs_expected_text"
-    reference_audio_path: str = ""
-    test_audio_path: str = ""
-    asr_reference_text: str = ""
+    comparison_type: ComparisonType = "audio_vs_reference_audio"
+    model_audio_path: str = ""
+    learner_audio_path: str = ""
+    asr_model_text: str = ""
     global_scores: GlobalScores = Field(default_factory=GlobalScores)
     domain_scores: DomainScores = Field(default_factory=DomainScores)
     localized_errors: list[LocalizedError] = Field(default_factory=list)

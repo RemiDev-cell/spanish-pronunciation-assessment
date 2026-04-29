@@ -17,7 +17,6 @@ from src.preprocess import ensure_mono_wav
 from src.reference_pair_phonology import collect_reference_pair_issues
 from src.reporting import assemble_report, non_evaluable_report
 from src.scoring import compute_domain_scores, compute_global_scores
-from src.spanish_phonology import collect_phonology_issues
 from src.text_processing import build_word_expectations, normalize_expected_text
 from src.transcribe import transcribe_spanish
 
@@ -30,151 +29,9 @@ def _merge_asr_status(a: EvaluationStatus, b: EvaluationStatus) -> EvaluationSta
     return EvaluationStatus.EVALUABLE
 
 
-def run_pipeline(
-    audio_path: Path,
-    expected_text: str,
-    settings: Settings,
-    *,
-    strict_text_match: bool,
-    allow_partial_match: bool,
-    debug: bool,
-) -> EvaluationReport:
-    expected_norm = normalize_expected_text(expected_text)
-    if not expected_norm.strip():
-        return non_evaluable_report(
-            reason="empty_expected_text",
-            expected_text=expected_text,
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    job = uuid.uuid4().hex[:10]
-    work = settings.work_dir / f"job_{job}"
-    work.mkdir(parents=True, exist_ok=True)
-
-    try:
-        wav_path, quality = ensure_mono_wav(audio_path, work, settings)
-    except RuntimeError as e:
-        return non_evaluable_report(
-            reason=str(e),
-            expected_text=expected_norm,
-            warnings=[str(e)],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    if not quality.is_evaluable:
-        return non_evaluable_report(
-            reason=f"audio_quality:{quality.reason}",
-            expected_text=expected_norm,
-            warnings=[quality.reason or "audio_quality"],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    try:
-        asr = transcribe_spanish(wav_path, model_name=settings.whisper_model)
-    except Exception as e:
-        if debug:
-            traceback.print_exc()
-        return non_evaluable_report(
-            reason=f"whisper_failed:{e}",
-            expected_text=expected_norm,
-            warnings=["whisper_failed"],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    asr_val = validate_asr_against_expected(
-        asr.text,
-        expected_norm,
-        settings,
-        strict=strict_text_match,
-        allow_partial=allow_partial_match,
-    )
-    if asr_val.status == EvaluationStatus.NON_EVALUABLE:
-        return non_evaluable_report(
-            reason="asr_text_mismatch",
-            expected_text=expected_norm,
-            asr_text=asr.text,
-            warnings=asr_val.warnings + [f"asr_similarity={asr_val.similarity:.1f}"],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    warnings: list[str] = list(asr_val.warnings)
-    EvalStatus = Literal["evaluable", "evaluable_with_warning", "non_evaluable"]
-    eval_status: EvalStatus = cast(
-        EvalStatus,
-        "evaluable_with_warning"
-        if asr_val.status == EvaluationStatus.EVALUABLE_WITH_WARNING
-        else "evaluable",
-    )
-
-    expectations = build_word_expectations(expected_norm)
-    surfaces = [e.surface for e in expectations]
-
-    try:
-        alignment = run_mfa_align(wav_path, surfaces, work, settings)
-    except RuntimeError as e:
-        if debug:
-            traceback.print_exc()
-        return non_evaluable_report(
-            reason=str(e),
-            expected_text=expected_norm,
-            asr_text=asr.text,
-            warnings=[str(e)],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    try:
-        if count_voiced_pitch_frames(str(wav_path)) < 5 and settings.require_parselmouth:
-            return non_evaluable_report(
-                reason="no_voiced_segments_detected",
-                expected_text=expected_norm,
-                asr_text=asr.text,
-                warnings=["no_voiced_segments_detected"],
-                test_audio_path=str(audio_path.resolve()),
-            )
-    except Exception as e:
-        if settings.require_parselmouth:
-            return non_evaluable_report(
-                reason=f"parselmouth_pitch_failed:{e}",
-                expected_text=expected_norm,
-                asr_text=asr.text,
-                warnings=["parselmouth_pitch_failed"],
-                test_audio_path=str(audio_path.resolve()),
-            )
-
-    try:
-        feat = extract_features(str(wav_path), alignment, expectations)
-    except Exception as e:
-        if debug:
-            traceback.print_exc()
-        return non_evaluable_report(
-            reason=f"feature_extraction_failed:{e}",
-            expected_text=expected_norm,
-            asr_text=asr.text,
-            warnings=["feature_extraction_failed"],
-            test_audio_path=str(audio_path.resolve()),
-        )
-
-    issues = collect_phonology_issues(alignment, expectations, feat, settings)
-    domains = compute_domain_scores(issues, feat)
-    global_scores = compute_global_scores(domains)
-
-    return assemble_report(
-        evaluation_status=eval_status,
-        expected_text=expected_norm,
-        asr_text=asr.text,
-        warnings=warnings,
-        domains=domains,
-        global_scores=global_scores,
-        issues=issues,
-        settings=settings,
-        comparison_type="audio_vs_expected_text",
-        test_audio_path=str(audio_path.resolve()),
-    )
-
-
-def run_pipeline_reference_pair(
-    reference_audio_path: Path,
-    test_audio_path: Path,
+def evaluate_reference_pair(
+    model_audio_path: Path,
+    learner_audio_path: Path,
     expected_text: str,
     settings: Settings,
     *,
@@ -183,16 +40,15 @@ def run_pipeline_reference_pair(
     debug: bool,
 ) -> EvaluationReport:
     """
-    Same script read by reference (model) and learner (test).
+    Same script read by reference (model) and learner.
     HEURISTIC: deltas are acoustic/temporal vs reference MFA alignment, not native G2P truth.
     """
     expected_norm = normalize_expected_text(expected_text)
-    ref_s = str(reference_audio_path.resolve())
-    te_s = str(test_audio_path.resolve())
+    model_s = str(model_audio_path.resolve())
+    learner_s = str(learner_audio_path.resolve())
     ctx = dict(
-        comparison_type=cast(Literal["audio_vs_reference_audio"], "audio_vs_reference_audio"),
-        reference_audio_path=ref_s,
-        test_audio_path=te_s,
+        model_audio_path=model_s,
+        learner_audio_path=learner_s,
     )
 
     if not expected_norm.strip():
@@ -207,29 +63,29 @@ def run_pipeline_reference_pair(
     work.mkdir(parents=True, exist_ok=True)
 
     try:
-        wav_ref, q_ref = ensure_mono_wav(reference_audio_path, work / "ref", settings)
-        wav_te, q_te = ensure_mono_wav(test_audio_path, work / "test", settings)
+        wav_model, q_model = ensure_mono_wav(model_audio_path, work / "model", settings)
+        wav_learner, q_learner = ensure_mono_wav(learner_audio_path, work / "learner", settings)
     except RuntimeError as e:
         return non_evaluable_report(reason=str(e), expected_text=expected_norm, warnings=[str(e)], **ctx)
 
-    if not q_ref.is_evaluable:
+    if not q_model.is_evaluable:
         return non_evaluable_report(
-            reason=f"reference_audio_quality:{q_ref.reason}",
+            reason=f"model_audio_quality:{q_model.reason}",
             expected_text=expected_norm,
-            warnings=[f"reference:{q_ref.reason}"],
+            warnings=[f"model:{q_model.reason}"],
             **ctx,
         )
-    if not q_te.is_evaluable:
+    if not q_learner.is_evaluable:
         return non_evaluable_report(
-            reason=f"test_audio_quality:{q_te.reason}",
+            reason=f"learner_audio_quality:{q_learner.reason}",
             expected_text=expected_norm,
-            warnings=[f"test:{q_te.reason}"],
+            warnings=[f"learner:{q_learner.reason}"],
             **ctx,
         )
 
     try:
-        asr_ref = transcribe_spanish(wav_ref, model_name=settings.whisper_model)
-        asr_te = transcribe_spanish(wav_te, model_name=settings.whisper_model)
+        asr_model = transcribe_spanish(wav_model, model_name=settings.whisper_model)
+        asr_learner = transcribe_spanish(wav_learner, model_name=settings.whisper_model)
     except Exception as e:
         if debug:
             traceback.print_exc()
@@ -240,30 +96,33 @@ def run_pipeline_reference_pair(
             **ctx,
         )
 
-    v_ref = validate_asr_against_expected(
-        asr_ref.text, expected_norm, settings, strict=strict_text_match, allow_partial=allow_partial_match
+    v_model = validate_asr_against_expected(
+        asr_model.text, expected_norm, settings, strict=strict_text_match, allow_partial=allow_partial_match
     )
-    v_te = validate_asr_against_expected(
-        asr_te.text, expected_norm, settings, strict=strict_text_match, allow_partial=allow_partial_match
+    v_learner = validate_asr_against_expected(
+        asr_learner.text, expected_norm, settings, strict=strict_text_match, allow_partial=allow_partial_match
     )
-    merged = _merge_asr_status(v_ref.status, v_te.status)
+    merged = _merge_asr_status(v_model.status, v_learner.status)
     if merged == EvaluationStatus.NON_EVALUABLE:
         return non_evaluable_report(
-            reason="asr_text_mismatch_ref_or_test",
+            reason="asr_text_mismatch_model_or_learner",
             expected_text=expected_norm,
-            asr_text=asr_te.text,
-            asr_reference_text=asr_ref.text,
-            warnings=v_ref.warnings
-            + v_te.warnings
-            + [f"asr_similarity_ref={v_ref.similarity:.1f}", f"asr_similarity_test={v_te.similarity:.1f}"],
+            asr_text=asr_learner.text,
+            asr_model_text=asr_model.text,
+            warnings=v_model.warnings
+            + v_learner.warnings
+            + [
+                f"asr_similarity_model={v_model.similarity:.1f}",
+                f"asr_similarity_learner={v_learner.similarity:.1f}",
+            ],
             **ctx,
         )
 
     warnings: list[str] = []
-    if v_ref.warnings:
-        warnings.extend([f"ref:{w}" for w in v_ref.warnings])
-    if v_te.warnings:
-        warnings.extend([f"test:{w}" for w in v_te.warnings])
+    if v_model.warnings:
+        warnings.extend([f"model:{w}" for w in v_model.warnings])
+    if v_learner.warnings:
+        warnings.extend([f"learner:{w}" for w in v_learner.warnings])
 
     EvalStatus = Literal["evaluable", "evaluable_with_warning", "non_evaluable"]
     eval_status: EvalStatus = cast(
@@ -275,38 +134,38 @@ def run_pipeline_reference_pair(
     surfaces = [e.surface for e in expectations]
 
     try:
-        align_ref = run_mfa_align(wav_ref, surfaces, work / "mfa_ref", settings)
-        align_te = run_mfa_align(wav_te, surfaces, work / "mfa_test", settings)
+        align_model = run_mfa_align(wav_model, surfaces, work / "mfa_model", settings)
+        align_learner = run_mfa_align(wav_learner, surfaces, work / "mfa_learner", settings)
     except RuntimeError as e:
         if debug:
             traceback.print_exc()
         return non_evaluable_report(
             reason=str(e),
             expected_text=expected_norm,
-            asr_text=asr_te.text,
-            asr_reference_text=asr_ref.text,
+            asr_text=asr_learner.text,
+            asr_model_text=asr_model.text,
             warnings=[str(e)],
             **ctx,
         )
 
     try:
         if settings.require_parselmouth:
-            if count_voiced_pitch_frames(str(wav_ref)) < 5:
+            if count_voiced_pitch_frames(str(wav_model)) < 5:
                 return non_evaluable_report(
-                    reason="no_voiced_segments_detected_reference",
+                    reason="no_voiced_segments_detected_model",
                     expected_text=expected_norm,
-                    asr_text=asr_te.text,
-                    asr_reference_text=asr_ref.text,
-                    warnings=["reference:no_voiced_segments"],
+                    asr_text=asr_learner.text,
+                    asr_model_text=asr_model.text,
+                    warnings=["model:no_voiced_segments"],
                     **ctx,
                 )
-            if count_voiced_pitch_frames(str(wav_te)) < 5:
+            if count_voiced_pitch_frames(str(wav_learner)) < 5:
                 return non_evaluable_report(
-                    reason="no_voiced_segments_detected_test",
+                    reason="no_voiced_segments_detected_learner",
                     expected_text=expected_norm,
-                    asr_text=asr_te.text,
-                    asr_reference_text=asr_ref.text,
-                    warnings=["test:no_voiced_segments"],
+                    asr_text=asr_learner.text,
+                    asr_model_text=asr_model.text,
+                    warnings=["learner:no_voiced_segments"],
                     **ctx,
                 )
     except Exception as e:
@@ -314,62 +173,67 @@ def run_pipeline_reference_pair(
             return non_evaluable_report(
                 reason=f"parselmouth_pitch_failed:{e}",
                 expected_text=expected_norm,
-                asr_text=asr_te.text,
-                asr_reference_text=asr_ref.text,
+                asr_text=asr_learner.text,
+                asr_model_text=asr_model.text,
                 warnings=["parselmouth_pitch_failed"],
                 **ctx,
             )
 
     try:
-        feat_ref = extract_features(str(wav_ref), align_ref, expectations)
-        feat_te = extract_features(str(wav_te), align_te, expectations)
+        feat_model = extract_features(str(wav_model), align_model, expectations)
+        feat_learner = extract_features(str(wav_learner), align_learner, expectations)
     except Exception as e:
         if debug:
             traceback.print_exc()
         return non_evaluable_report(
             reason=f"feature_extraction_failed:{e}",
             expected_text=expected_norm,
-            asr_text=asr_te.text,
-            asr_reference_text=asr_ref.text,
+            asr_text=asr_learner.text,
+            asr_model_text=asr_model.text,
             warnings=["feature_extraction_failed"],
             **ctx,
         )
 
     issues = collect_reference_pair_issues(
-        align_ref, align_te, feat_ref, feat_te, expectations, settings
+        align_model, align_learner, feat_model, feat_learner, expectations, settings
     )
-    domains = compute_domain_scores(issues, feat_te)
+    domains = compute_domain_scores(issues, feat_learner)
     global_scores = compute_global_scores(domains)
 
     return assemble_report(
         evaluation_status=eval_status,
         expected_text=expected_norm,
-        asr_text=asr_te.text,
+        asr_text=asr_learner.text,
         warnings=warnings,
         domains=domains,
         global_scores=global_scores,
         issues=issues,
         settings=settings,
-        comparison_type="audio_vs_reference_audio",
-        reference_audio_path=ref_s,
-        test_audio_path=te_s,
-        asr_reference_text=asr_ref.text,
+        model_audio_path=model_s,
+        learner_audio_path=learner_s,
+        asr_model_text=asr_model.text,
     )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     p = argparse.ArgumentParser(
         description=(
-            "Spanish phonetic assessment: (1) learner audio vs expected text, or "
-            "(2) learner vs reference audio with the same script."
+            "Spanish comparative pronunciation assessment: learner audio vs reference "
+            "model audio with the same script."
         )
     )
     p.add_argument(
         "--audio",
         type=Path,
-        help="Learner / test audio (wav/mp3/m4a/mp4). Required unless using legacy single mode with only --audio (see below).",
+        required=True,
+        help="Learner audio (wav/mp3/m4a/mp4).",
     )
-    p.add_argument("--reference-audio", type=Path, default=None, help="Reference (model) reading of the same script.")
+    p.add_argument(
+        "--reference-audio",
+        type=Path,
+        required=True,
+        help="Reference model reading of the same script.",
+    )
     p.add_argument("--text", required=True, help="Shared Spanish script (same words for both recordings).")
     p.add_argument("--output", type=Path, default=None, help="Write JSON report to this path.")
     p.add_argument(
@@ -387,29 +251,15 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     settings = get_settings()
 
-    if args.reference_audio is not None:
-        if args.audio is None:
-            p.error("--audio (learner/test recording) is required when using --reference-audio.")
-        report = run_pipeline_reference_pair(
-            args.reference_audio.expanduser().resolve(),
-            args.audio.expanduser().resolve(),
-            args.text,
-            settings,
-            strict_text_match=bool(args.strict_text_match),
-            allow_partial_match=bool(args.allow_partial_match),
-            debug=bool(args.debug),
-        )
-    else:
-        if args.audio is None:
-            p.error("--audio is required.")
-        report = run_pipeline(
-            args.audio.expanduser().resolve(),
-            args.text,
-            settings,
-            strict_text_match=bool(args.strict_text_match),
-            allow_partial_match=bool(args.allow_partial_match),
-            debug=bool(args.debug),
-        )
+    report = evaluate_reference_pair(
+        args.reference_audio.expanduser().resolve(),
+        args.audio.expanduser().resolve(),
+        args.text,
+        settings,
+        strict_text_match=bool(args.strict_text_match),
+        allow_partial_match=bool(args.allow_partial_match),
+        debug=bool(args.debug),
+    )
 
     text = report.model_dump_json(indent=2)
     if args.output:

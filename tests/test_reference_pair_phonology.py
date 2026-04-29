@@ -1,4 +1,4 @@
-"""Unit tests for reference vs test audio comparison heuristics."""
+"""Unit tests for model reference vs learner audio comparison heuristics."""
 
 from src.config import get_settings
 from src.models import AlignmentResult, FeatureBundle, PhoneInterval, WordExpectation, WordInterval
@@ -32,16 +32,16 @@ def _prom_bundle(zs: list[float], exp_stress: int, surface: str) -> dict:
 def test_reference_pair_detects_stress_gap():
     settings = get_settings()
     exp = [WordExpectation(surface="hola", syllables=["ho", "la"], stressed_syllable_index=0)]
-    align_ref = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
-    align_te = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
+    align_model = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
+    align_learner = AlignmentResult(words=[_make_word("hola", 0.4, 0.0)])
 
-    feat_ref = FeatureBundle(
+    feat_model = FeatureBundle(
         word_prominence_z={"0:hola": _prom_bundle([1.3, -0.5], 0, "hola")},
         pause_durations=[],
         speech_rate_wpm=120.0,
         f0_std_hz=25.0,
     )
-    feat_te = FeatureBundle(
+    feat_learner = FeatureBundle(
         word_prominence_z={"0:hola": _prom_bundle([0.35, 0.32], 0, "hola")},
         pause_durations=[],
         speech_rate_wpm=118.0,
@@ -49,7 +49,7 @@ def test_reference_pair_detects_stress_gap():
     )
 
     issues = collect_reference_pair_issues(
-        align_ref, align_te, feat_ref, feat_te, exp, settings
+        align_model, align_learner, feat_model, feat_learner, exp, settings
     )
     types = {i.error_type.value for i in issues}
     # argmax still on tonic syllable (0) but prominence z on tonic is much lower than reference

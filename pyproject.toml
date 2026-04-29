@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spanish-phon-assessment"
 version = "0.1.0"
-description = "MVP: Spanish learner audio vs expected text — ASR, MFA alignment, prosody features, heuristic scoring."
+description = "MVP: Comparative Spanish pronunciation assessment from learner audio, model audio, and a shared script."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
