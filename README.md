@@ -108,6 +108,7 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
   Vowel formants expose F1/F2 values and deltas for aligned vowel phones.
 - `confidence_by_domain` with simple evidence levels for ASR/script match, alignment, prosody, and vowel quality.
   Vowel-quality confidence is low when too few aligned vowels have complete F1/F2 measurements.
+  Non-evaluable reports also include blocking confidence evidence for audio quality, ASR, alignment, or feature extraction failures when available.
 
 Flags:
 
@@ -165,7 +166,7 @@ not psychometric measurements.
 Short term:
 
 - Add lightweight diagnostic plots for timing, pauses, and F0.
-- Add confidence signals for audio quality and ASR instability in non-evaluable reports.
+- Add confidence signals for sparse prosody and unstable alignments.
 
 Medium term:
 

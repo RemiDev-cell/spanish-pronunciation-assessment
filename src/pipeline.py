@@ -218,6 +218,66 @@ def _confidence_by_domain_payload(
     }
 
 
+def _audio_quality_evidence(
+    *,
+    model: Optional[AudioQualityReport] = None,
+    learner: Optional[AudioQualityReport] = None,
+) -> dict[str, Any]:
+    reports = [r for r in (model, learner) if r is not None]
+    if not reports:
+        return {"level": "unknown", "available": False}
+    ok = all(r.is_evaluable for r in reports)
+    return {
+        "level": "high" if ok else "blocking",
+        "available": True,
+        "model_is_evaluable": None if model is None else model.is_evaluable,
+        "learner_is_evaluable": None if learner is None else learner.is_evaluable,
+        "model_reason": None if model is None else model.reason,
+        "learner_reason": None if learner is None else learner.reason,
+    }
+
+
+def _non_evaluable_confidence_payload(
+    *,
+    reason: str,
+    model_quality: Optional[AudioQualityReport] = None,
+    learner_quality: Optional[AudioQualityReport] = None,
+    model_asr: Optional[ASRValidationResult] = None,
+    learner_asr: Optional[ASRValidationResult] = None,
+    alignment_attempted: bool = False,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "overall": {"level": "non_evaluable", "blocking_reason": reason},
+        "audio_quality": _audio_quality_evidence(model=model_quality, learner=learner_quality),
+        "alignment": {
+            "level": "blocking" if alignment_attempted else "unavailable",
+            "attempted": alignment_attempted,
+        },
+        "vowel_quality": {
+            "level": "unavailable",
+            "reason": "feature_extraction_not_completed",
+        },
+        "prosody": {
+            "level": "unavailable",
+            "reason": "feature_extraction_not_completed",
+        },
+    }
+    if model_asr is not None and learner_asr is not None:
+        asr_similarity = min(model_asr.similarity, learner_asr.similarity)
+        payload["asr_script_match"] = {
+            "level": "blocking"
+            if model_asr.status == EvaluationStatus.NON_EVALUABLE
+            or learner_asr.status == EvaluationStatus.NON_EVALUABLE
+            else "medium",
+            "model_similarity": round(model_asr.similarity, 2),
+            "learner_similarity": round(learner_asr.similarity, 2),
+            "minimum_similarity": round(asr_similarity, 2),
+        }
+    else:
+        payload["asr_script_match"] = {"level": "unavailable"}
+    return payload
+
+
 def _alignment_artifacts_payload(
     model_alignment: AlignmentResult,
     learner_alignment: AlignmentResult,
@@ -273,9 +333,11 @@ def evaluate_reference_pair(
     )
 
     if not expected_norm.strip():
+        reason = "empty_expected_text"
         return non_evaluable_report(
-            reason="empty_expected_text",
+            reason=reason,
             expected_text=expected_text,
+            confidence_by_domain=_non_evaluable_confidence_payload(reason=reason),
             **ctx,
         )
 
@@ -287,22 +349,40 @@ def evaluate_reference_pair(
         wav_model, q_model = ensure_mono_wav(model_audio_path, work / "model", settings)
         wav_learner, q_learner = ensure_mono_wav(learner_audio_path, work / "learner", settings)
     except RuntimeError as e:
-        return non_evaluable_report(reason=str(e), expected_text=expected_norm, warnings=[str(e)], **ctx)
+        reason = str(e)
+        return non_evaluable_report(
+            reason=reason,
+            expected_text=expected_norm,
+            warnings=[str(e)],
+            confidence_by_domain=_non_evaluable_confidence_payload(reason=reason),
+            **ctx,
+        )
 
     if not q_model.is_evaluable:
+        reason = f"model_audio_quality:{q_model.reason}"
         return non_evaluable_report(
-            reason=f"model_audio_quality:{q_model.reason}",
+            reason=reason,
             expected_text=expected_norm,
             warnings=[f"model:{q_model.reason}"],
             audio_quality=_audio_quality_payload(model=q_model),
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+            ),
             **ctx,
         )
     if not q_learner.is_evaluable:
+        reason = f"learner_audio_quality:{q_learner.reason}"
         return non_evaluable_report(
-            reason=f"learner_audio_quality:{q_learner.reason}",
+            reason=reason,
             expected_text=expected_norm,
             warnings=[f"learner:{q_learner.reason}"],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+                learner_quality=q_learner,
+            ),
             **ctx,
         )
 
@@ -312,11 +392,17 @@ def evaluate_reference_pair(
     except Exception as e:
         if debug:
             traceback.print_exc()
+        reason = f"whisper_failed:{e}"
         return non_evaluable_report(
-            reason=f"whisper_failed:{e}",
+            reason=reason,
             expected_text=expected_norm,
             warnings=["whisper_failed"],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+                learner_quality=q_learner,
+            ),
             **ctx,
         )
 
@@ -328,8 +414,9 @@ def evaluate_reference_pair(
     )
     merged = _merge_asr_status(v_model.status, v_learner.status)
     if merged == EvaluationStatus.NON_EVALUABLE:
+        reason = "asr_text_mismatch_model_or_learner"
         return non_evaluable_report(
-            reason="asr_text_mismatch_model_or_learner",
+            reason=reason,
             expected_text=expected_norm,
             asr_text=asr_learner.text,
             asr_model_text=asr_model.text,
@@ -340,6 +427,13 @@ def evaluate_reference_pair(
                 f"asr_similarity_learner={v_learner.similarity:.1f}",
             ],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+                learner_quality=q_learner,
+                model_asr=v_model,
+                learner_asr=v_learner,
+            ),
             **ctx,
         )
 
@@ -364,13 +458,22 @@ def evaluate_reference_pair(
     except RuntimeError as e:
         if debug:
             traceback.print_exc()
+        reason = str(e)
         return non_evaluable_report(
-            reason=str(e),
+            reason=reason,
             expected_text=expected_norm,
             asr_text=asr_learner.text,
             asr_model_text=asr_model.text,
             warnings=[str(e)],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+                learner_quality=q_learner,
+                model_asr=v_model,
+                learner_asr=v_learner,
+                alignment_attempted=True,
+            ),
             **ctx,
         )
     alignment_artifacts = _alignment_artifacts_payload(
@@ -383,37 +486,64 @@ def evaluate_reference_pair(
     try:
         if settings.require_parselmouth:
             if count_voiced_pitch_frames(str(wav_model)) < 5:
+                reason = "no_voiced_segments_detected_model"
                 return non_evaluable_report(
-                    reason="no_voiced_segments_detected_model",
+                    reason=reason,
                     expected_text=expected_norm,
                     asr_text=asr_learner.text,
                     asr_model_text=asr_model.text,
                     warnings=["model:no_voiced_segments"],
                     audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
                     alignment_artifacts=alignment_artifacts,
+                    confidence_by_domain=_non_evaluable_confidence_payload(
+                        reason=reason,
+                        model_quality=q_model,
+                        learner_quality=q_learner,
+                        model_asr=v_model,
+                        learner_asr=v_learner,
+                        alignment_attempted=True,
+                    ),
                     **ctx,
                 )
             if count_voiced_pitch_frames(str(wav_learner)) < 5:
+                reason = "no_voiced_segments_detected_learner"
                 return non_evaluable_report(
-                    reason="no_voiced_segments_detected_learner",
+                    reason=reason,
                     expected_text=expected_norm,
                     asr_text=asr_learner.text,
                     asr_model_text=asr_model.text,
                     warnings=["learner:no_voiced_segments"],
                     audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
                     alignment_artifacts=alignment_artifacts,
+                    confidence_by_domain=_non_evaluable_confidence_payload(
+                        reason=reason,
+                        model_quality=q_model,
+                        learner_quality=q_learner,
+                        model_asr=v_model,
+                        learner_asr=v_learner,
+                        alignment_attempted=True,
+                    ),
                     **ctx,
                 )
     except Exception as e:
         if settings.require_parselmouth:
+            reason = f"parselmouth_pitch_failed:{e}"
             return non_evaluable_report(
-                reason=f"parselmouth_pitch_failed:{e}",
+                reason=reason,
                 expected_text=expected_norm,
                 asr_text=asr_learner.text,
                 asr_model_text=asr_model.text,
                 warnings=["parselmouth_pitch_failed"],
                 audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
                 alignment_artifacts=alignment_artifacts,
+                confidence_by_domain=_non_evaluable_confidence_payload(
+                    reason=reason,
+                    model_quality=q_model,
+                    learner_quality=q_learner,
+                    model_asr=v_model,
+                    learner_asr=v_learner,
+                    alignment_attempted=True,
+                ),
                 **ctx,
             )
 
@@ -423,14 +553,23 @@ def evaluate_reference_pair(
     except Exception as e:
         if debug:
             traceback.print_exc()
+        reason = f"feature_extraction_failed:{e}"
         return non_evaluable_report(
-            reason=f"feature_extraction_failed:{e}",
+            reason=reason,
             expected_text=expected_norm,
             asr_text=asr_learner.text,
             asr_model_text=asr_model.text,
             warnings=["feature_extraction_failed"],
             audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
             alignment_artifacts=alignment_artifacts,
+            confidence_by_domain=_non_evaluable_confidence_payload(
+                reason=reason,
+                model_quality=q_model,
+                learner_quality=q_learner,
+                model_asr=v_model,
+                learner_asr=v_learner,
+                alignment_attempted=True,
+            ),
             **ctx,
         )
 
