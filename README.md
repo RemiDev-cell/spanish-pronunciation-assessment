@@ -32,13 +32,14 @@ correctors.
 | MFA | Word/phone time boundaries for both recordings under the same script | MFA aligns to the expected transcript; it does not prove what was truly produced |
 | Prosody | F0 and intensity samples inside aligned intervals; pause lengths between aligned words | Assumes same speaker/setup, so direct Hz and dB deltas are interpretable |
 | Lexical stress | Text stress from **silabeador** vs same-speaker duration/F0/intensity prominence in word sub-intervals | “Syllable” windows are proportional to grapheme length, not true signal syllable boundaries |
-| Reference comparison | Per-word durations, pauses, prominence, global tempo, and F0 variability vs personal reference | Thresholds are configurable but not yet empirically calibrated |
-| Segmental timing | Phone duration distributions from MFA intervals | Duration outliers indicate possible issues, not categorical substitutions or omissions |
+| Reference comparison | Per-word durations, pauses, prominence, global tempo, F0 variability, and vowel F1/F2 deltas vs personal reference | Thresholds are configurable but not yet empirically calibrated |
+| Segmental timing | Phone duration distributions and vowel formants from MFA intervals | Duration/formant outliers indicate possible issues, not categorical substitutions or omissions |
 
 ## Current limits
 
 - No native syllable-tier alignment or G2P-based syllable-to-phone grouping.
-- No vowel formant tracking, true SNR, or robust VAD-based disfluency detection.
+- No true SNR or robust VAD-based disfluency detection.
+- Vowel formants are extracted as same-speaker F1/F2 deltas, but remain sensitive to MFA boundaries and short vowels.
 - Clipping and mostly-silent audio are flagged with simple signal-level heuristics.
 - No reference-free ground truth phoneme correctness.
 - No calibrated scoring against human pronunciation judgments.
@@ -75,7 +76,10 @@ Optional: copy `.env.example` to `.env` and adjust thresholds or MFA model names
 Same-speaker comparison thresholds are exposed through `SPANISH_PHON_*` settings
 such as `SPANISH_PHON_WORD_DURATION_RATIO_LOW`,
 `SPANISH_PHON_STRESS_PROMINENCE_DELTA_THRESHOLD`, and
-`SPANISH_PHON_F0_STD_RATIO_LOW`.
+`SPANISH_PHON_F0_STD_RATIO_LOW`. Vowel-quality thresholds are also configurable:
+`SPANISH_PHON_VOWEL_FORMANT_F1_DELTA_THRESHOLD_HZ`,
+`SPANISH_PHON_VOWEL_FORMANT_F2_DELTA_THRESHOLD_HZ`, and
+`SPANISH_PHON_VOWEL_FORMANT_DISTANCE_THRESHOLD_HZ`.
 
 ## CLI
 
@@ -101,6 +105,7 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
 - `raw_metrics` with model, learner, and delta acoustic/timing measurements used by the heuristic comparison.
   `raw_metrics.assumptions` records that same-speaker mode is active and inter-speaker normalization is disabled.
   Syllable prominence exposes direct duration, F0, and intensity components.
+  Vowel formants expose F1/F2 values and deltas for aligned vowel phones.
 
 Flags:
 
@@ -158,11 +163,11 @@ not psychometric measurements.
 Short term:
 
 - Add lightweight diagnostic plots for timing, pauses, and F0.
-- Add vowel F1/F2 deltas for same-speaker vowel-quality comparison.
+- Add confidence signals for unstable formant extraction and sparse vowel evidence.
 
 Medium term:
 
-- Add vowel formants and selected consonant timing/spectral features.
+- Add selected consonant timing/spectral features.
 - Replace proportional syllable windows with syllable-to-phone grouping.
 - Add diagnostic plots for timing, pauses, F0, and prominence.
 

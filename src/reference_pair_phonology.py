@@ -23,6 +23,56 @@ def _get_prom_payload(feat: FeatureBundle, i: int, exp: WordExpectation) -> Opti
     return feat.word_prominence_z.get(_word_key(i, exp))
 
 
+def _collect_vowel_formant_issues(
+    feat_model: FeatureBundle,
+    feat_learner: FeatureBundle,
+    settings: Settings,
+) -> list[PhonologyIssue]:
+    issues: list[PhonologyIssue] = []
+    n = min(len(feat_model.vowel_formants), len(feat_learner.vowel_formants))
+    for i in range(n):
+        m = feat_model.vowel_formants[i]
+        learner_item = feat_learner.vowel_formants[i]
+        f1_m, f1_l = m.get("f1_hz"), learner_item.get("f1_hz")
+        f2_m, f2_l = m.get("f2_hz"), learner_item.get("f2_hz")
+        if f1_m is None or f1_l is None or f2_m is None or f2_l is None:
+            continue
+
+        d_f1 = float(f1_l) - float(f1_m)
+        d_f2 = float(f2_l) - float(f2_m)
+        dist = math.sqrt(d_f1 * d_f1 + d_f2 * d_f2)
+        if (
+            abs(d_f1) < settings.vowel_formant_f1_delta_threshold_hz
+            and abs(d_f2) < settings.vowel_formant_f2_delta_threshold_hz
+            and dist < settings.vowel_formant_distance_threshold_hz
+        ):
+            continue
+
+        word = str(m.get("word") or "")
+        phone = str(m.get("phone") or "")
+        issues.append(
+            PhonologyIssue(
+                error_type=LocalizedErrorType.VOYELLE_MAL_REALISEE,
+                target_unit=word or phone or "voyelle",
+                precise_location=(
+                    f"vowel_formant_index_{i}|word_index_{m.get('word_index')}|phone_{phone}"
+                ),
+                confidence=0.5,
+                observation=(
+                    "Écart formantique F1/F2 notable par rapport à la référence du même locuteur "
+                    f"(ΔF1≈{d_f1:.0f} Hz, ΔF2≈{d_f2:.0f} Hz, distance≈{dist:.0f} Hz)."
+                ),
+                observed=f"F1={float(f1_l):.0f} Hz, F2={float(f2_l):.0f} Hz",
+                expected=f"F1={float(f1_m):.0f} Hz, F2={float(f2_m):.0f} Hz",
+                perceptual_effect="La qualité vocalique peut s'éloigner de la réalisation de référence.",
+                correction="Reprendre la voyelle ciblée en cherchant la même ouverture et le même arrondissement que la référence.",
+                priority="moyenne",
+                score_penalty_hint=min(0.35, 0.12 + dist / 1800.0),
+            )
+        )
+    return issues
+
+
 def collect_reference_pair_issues(
     alignment_model: AlignmentResult,
     alignment_learner: AlignmentResult,
@@ -60,6 +110,8 @@ def collect_reference_pair_issues(
                 score_penalty_hint=0.35,
             )
         )
+
+    issues.extend(_collect_vowel_formant_issues(feat_model, feat_learner, settings))
 
     for i in range(n):
         exp = expectations[i]

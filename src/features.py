@@ -12,6 +12,11 @@ import parselmouth as pm
 from src.models import AlignmentResult, FeatureBundle, WordExpectation
 
 
+def _is_spanish_vowel_phone(label: str) -> bool:
+    lab = label.strip().lower().replace("ˈ", "").replace("ˌ", "")
+    return bool(lab) and lab[0] in "aeiouáéíóú"
+
+
 def _sample_series(
     pitch: pm.Pitch,
     intensity: pm.Intensity,
@@ -76,6 +81,58 @@ def _same_speaker_prominence_score(
     return duration_sec + 0.004 * (f0_mean_hz or 0.0) + 0.06 * (intensity_mean_db or 0.0)
 
 
+def _sample_formant_mean(
+    formant: Any,
+    formant_number: int,
+    t0: float,
+    t1: float,
+    step: float = 0.01,
+) -> float | None:
+    vals: list[float] = []
+    if t1 <= t0:
+        return None
+    t = t0
+    while t <= t1:
+        val = formant.get_value_at_time(formant_number, t)
+        if val is not None and not math.isnan(val) and val > 0:
+            vals.append(float(val))
+        t += step
+    return float(mean(vals)) if vals else None
+
+
+def _extract_vowel_formants(snd: pm.Sound, alignment: AlignmentResult) -> list[dict[str, Any]]:
+    try:
+        formant = snd.to_formant_burg(time_step=0.01, max_number_of_formants=5, maximum_formant=5500.0)
+    except Exception:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for word_index, word in enumerate(alignment.words):
+        for phone_index, phone in enumerate(word.phones):
+            if not _is_spanish_vowel_phone(phone.label) or phone.duration < 0.025:
+                continue
+            # Use the center 60% to reduce boundary/coarticulation noise.
+            margin = phone.duration * 0.2
+            t0 = phone.start + margin
+            t1 = phone.end - margin
+            f1 = _sample_formant_mean(formant, 1, t0, t1)
+            f2 = _sample_formant_mean(formant, 2, t0, t1)
+            out.append(
+                {
+                    "word_index": word_index,
+                    "word": word.label,
+                    "phone_index": phone_index,
+                    "phone": phone.label,
+                    "start": phone.start,
+                    "end": phone.end,
+                    "duration": phone.duration,
+                    "f1_hz": f1,
+                    "f2_hz": f2,
+                }
+            )
+    return out
+
+
 def extract_features(
     wav_path: str,
     alignment: AlignmentResult,
@@ -84,6 +141,7 @@ def extract_features(
     snd = pm.Sound(wav_path)
     pitch = snd.to_pitch(time_step=0.01, pitch_floor=75.0, pitch_ceiling=500.0)
     intensity = snd.to_intensity(time_step=0.01, minimum_pitch=75.0)
+    vowel_formants = _extract_vowel_formants(snd, alignment)
 
     words = alignment.words
     word_durs = [w.duration for w in words]
@@ -188,6 +246,7 @@ def extract_features(
         intensity_std_db=int_std,
         intensity_range_db=int_range,
         word_prominence_z=prominence,
+        vowel_formants=vowel_formants,
         global_phone_duration_mean=g_mean,
         global_phone_duration_std=max(g_std, 1e-6),
         raw_debug={"n_words_aligned": len(words), "n_words_expected": len(expectations)},

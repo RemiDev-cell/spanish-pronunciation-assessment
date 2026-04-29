@@ -65,6 +65,7 @@ def _feature_summary(feat: FeatureBundle) -> dict[str, Any]:
         "global_phone_duration_mean_sec": feat.global_phone_duration_mean,
         "global_phone_duration_std_sec": feat.global_phone_duration_std,
         "word_prominence_z": feat.word_prominence_z,
+        "vowel_formants": feat.vowel_formants,
         "raw_debug": feat.raw_debug,
     }
 
@@ -114,8 +115,33 @@ def _raw_metrics_payload(
             "pause_duration_deltas_sec": [
                 learner_pauses[i] - model_pauses[i] for i in range(n_pauses)
             ],
+            "vowel_formant_deltas": _vowel_formant_deltas(model, learner),
         },
     }
+
+
+def _vowel_formant_deltas(
+    model: FeatureBundle,
+    learner: FeatureBundle,
+) -> list[dict[str, Any]]:
+    deltas: list[dict[str, Any]] = []
+    n = min(len(model.vowel_formants), len(learner.vowel_formants))
+    for i in range(n):
+        m = model.vowel_formants[i]
+        learner_item = learner.vowel_formants[i]
+        f1_m, f1_l = m.get("f1_hz"), learner_item.get("f1_hz")
+        f2_m, f2_l = m.get("f2_hz"), learner_item.get("f2_hz")
+        deltas.append(
+            {
+                "index": i,
+                "word_index": m.get("word_index"),
+                "phone": m.get("phone"),
+                "learner_phone": learner_item.get("phone"),
+                "f1_delta_hz": None if f1_m is None or f1_l is None else f1_l - f1_m,
+                "f2_delta_hz": None if f2_m is None or f2_l is None else f2_l - f2_m,
+            }
+        )
+    return deltas
 
 
 def _alignment_artifacts_payload(

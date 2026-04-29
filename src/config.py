@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     f0_std_min_hz_for_intonation: float = 10.0
     f0_std_ratio_low: float = 0.55
     low_f0_std_hz_threshold: float = 10.0
+    vowel_formant_f1_delta_threshold_hz: float = 120.0
+    vowel_formant_f2_delta_threshold_hz: float = 180.0
+    vowel_formant_distance_threshold_hz: float = 220.0
 
     # Legacy single-audio heuristics retained for unused compatibility helpers.
     pause_outlier_multiplier: float = 2.8

@@ -84,3 +84,49 @@ def test_reference_pair_uses_direct_hz_f0_spread_for_same_speaker_intonation():
     ]
     assert len(intonation_issues) == 1
     assert "Hz" in intonation_issues[0].observed
+
+
+def test_reference_pair_detects_same_speaker_vowel_formant_delta():
+    settings = get_settings()
+    exp = [WordExpectation(surface="mesa", syllables=["me", "sa"], stressed_syllable_index=0)]
+    align_model = AlignmentResult(words=[_make_word("mesa", 0.4, 0.0)])
+    align_learner = AlignmentResult(words=[_make_word("mesa", 0.4, 0.0)])
+
+    feat_model = FeatureBundle(
+        word_prominence_z={"0:mesa": _prom_bundle([1.2, -0.3], 0, "mesa")},
+        speech_rate_wpm=120.0,
+        f0_std_hz=25.0,
+        vowel_formants=[
+            {
+                "word_index": 0,
+                "word": "mesa",
+                "phone_index": 0,
+                "phone": "e",
+                "f1_hz": 480.0,
+                "f2_hz": 2100.0,
+            }
+        ],
+    )
+    feat_learner = FeatureBundle(
+        word_prominence_z={"0:mesa": _prom_bundle([1.1, -0.2], 0, "mesa")},
+        speech_rate_wpm=120.0,
+        f0_std_hz=24.0,
+        vowel_formants=[
+            {
+                "word_index": 0,
+                "word": "mesa",
+                "phone_index": 0,
+                "phone": "e",
+                "f1_hz": 650.0,
+                "f2_hz": 1800.0,
+            }
+        ],
+    )
+
+    issues = collect_reference_pair_issues(
+        align_model, align_learner, feat_model, feat_learner, exp, settings
+    )
+
+    vowel_issues = [issue for issue in issues if issue.error_type.value == "voyelle_mal_realisee"]
+    assert len(vowel_issues) == 1
+    assert "ΔF1" in vowel_issues[0].observation
