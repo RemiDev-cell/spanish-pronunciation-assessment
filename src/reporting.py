@@ -109,6 +109,7 @@ def assemble_report(
     alignment_artifacts: Optional[dict[str, str]] = None,
     audio_quality: Optional[dict[str, Any]] = None,
     raw_metrics: Optional[dict[str, Any]] = None,
+    confidence_by_domain: Optional[dict[str, Any]] = None,
 ) -> EvaluationReport:
     loc = issues_to_localized_errors(issues, settings)
     return EvaluationReport(
@@ -130,6 +131,7 @@ def assemble_report(
         alignment_artifacts=dict(alignment_artifacts or {}),
         audio_quality=dict(audio_quality or {}),
         raw_metrics=dict(raw_metrics or {}),
+        confidence_by_domain=dict(confidence_by_domain or {}),
     )
 
 
@@ -146,6 +148,7 @@ def non_evaluable_report(
     alignment_artifacts: Optional[dict[str, str]] = None,
     audio_quality: Optional[dict[str, Any]] = None,
     raw_metrics: Optional[dict[str, Any]] = None,
+    confidence_by_domain: Optional[dict[str, Any]] = None,
 ) -> EvaluationReport:
     ws = list(warnings or [])
     ws.append(reason)
@@ -186,5 +189,6 @@ def non_evaluable_report(
         alignment_artifacts=dict(alignment_artifacts or {}),
         audio_quality=dict(audio_quality or {}),
         raw_metrics=dict(raw_metrics or {}),
+        confidence_by_domain=dict(confidence_by_domain or {}),
         final_summary=f"Non évaluable: {reason}",
     )

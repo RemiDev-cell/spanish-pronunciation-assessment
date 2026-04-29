@@ -106,6 +106,8 @@ The JSON includes `comparison_type`, `model_audio_path`, `learner_audio_path`,
   `raw_metrics.assumptions` records that same-speaker mode is active and inter-speaker normalization is disabled.
   Syllable prominence exposes direct duration, F0, and intensity components.
   Vowel formants expose F1/F2 values and deltas for aligned vowel phones.
+- `confidence_by_domain` with simple evidence levels for ASR/script match, alignment, prosody, and vowel quality.
+  Vowel-quality confidence is low when too few aligned vowels have complete F1/F2 measurements.
 
 Flags:
 
@@ -163,7 +165,7 @@ not psychometric measurements.
 Short term:
 
 - Add lightweight diagnostic plots for timing, pauses, and F0.
-- Add confidence signals for unstable formant extraction and sparse vowel evidence.
+- Add confidence signals for audio quality and ASR instability in non-evaluable reports.
 
 Medium term:
 

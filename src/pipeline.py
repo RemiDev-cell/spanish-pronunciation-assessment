@@ -15,6 +15,7 @@ from src.config import Settings, get_settings
 from src.features import count_voiced_pitch_frames, extract_features
 from src.models import (
     AlignmentResult,
+    ASRValidationResult,
     AudioQualityReport,
     EvaluationReport,
     EvaluationStatus,
@@ -142,6 +143,79 @@ def _vowel_formant_deltas(
             }
         )
     return deltas
+
+
+def _vowel_formant_evidence(
+    model: FeatureBundle,
+    learner: FeatureBundle,
+    settings: Settings,
+) -> dict[str, Any]:
+    paired_count = min(len(model.vowel_formants), len(learner.vowel_formants))
+    complete_pairs = 0
+    for i in range(paired_count):
+        m = model.vowel_formants[i]
+        learner_item = learner.vowel_formants[i]
+        if (
+            m.get("f1_hz") is not None
+            and m.get("f2_hz") is not None
+            and learner_item.get("f1_hz") is not None
+            and learner_item.get("f2_hz") is not None
+        ):
+            complete_pairs += 1
+
+    coverage = complete_pairs / paired_count if paired_count else 0.0
+    if complete_pairs >= settings.min_vowel_formant_pairs_for_high_confidence and coverage >= 0.7:
+        level = "high"
+    elif complete_pairs >= settings.min_vowel_formant_pairs_for_medium_confidence:
+        level = "medium"
+    else:
+        level = "low"
+
+    return {
+        "level": level,
+        "model_vowel_count": len(model.vowel_formants),
+        "learner_vowel_count": len(learner.vowel_formants),
+        "paired_vowel_count": paired_count,
+        "complete_f1_f2_pair_count": complete_pairs,
+        "complete_pair_coverage": round(coverage, 3),
+    }
+
+
+def _confidence_by_domain_payload(
+    *,
+    model: FeatureBundle,
+    learner: FeatureBundle,
+    model_asr: ASRValidationResult,
+    learner_asr: ASRValidationResult,
+    settings: Settings,
+) -> dict[str, Any]:
+    formants = _vowel_formant_evidence(model, learner, settings)
+    prosody_level = "high" if model.f0_std_hz is not None and learner.f0_std_hz is not None else "low"
+    alignment_level = (
+        "high"
+        if model.raw_debug.get("n_words_aligned") == learner.raw_debug.get("n_words_aligned")
+        else "medium"
+    )
+    asr_similarity = min(model_asr.similarity, learner_asr.similarity)
+    asr_level = "high" if asr_similarity >= settings.asr_warn_threshold else "medium"
+    return {
+        "asr_script_match": {
+            "level": asr_level,
+            "model_similarity": round(model_asr.similarity, 2),
+            "learner_similarity": round(learner_asr.similarity, 2),
+        },
+        "alignment": {
+            "level": alignment_level,
+            "model_words_aligned": model.raw_debug.get("n_words_aligned"),
+            "learner_words_aligned": learner.raw_debug.get("n_words_aligned"),
+        },
+        "vowel_quality": formants,
+        "prosody": {
+            "level": prosody_level,
+            "model_f0_std_hz_available": model.f0_std_hz is not None,
+            "learner_f0_std_hz_available": learner.f0_std_hz is not None,
+        },
+    }
 
 
 def _alignment_artifacts_payload(
@@ -381,6 +455,13 @@ def evaluate_reference_pair(
         alignment_artifacts=alignment_artifacts,
         audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
         raw_metrics=_raw_metrics_payload(feat_model, feat_learner, settings),
+        confidence_by_domain=_confidence_by_domain_payload(
+            model=feat_model,
+            learner=feat_learner,
+            model_asr=v_model,
+            learner_asr=v_learner,
+            settings=settings,
+        ),
     )
 
 

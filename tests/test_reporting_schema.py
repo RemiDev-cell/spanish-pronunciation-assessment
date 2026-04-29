@@ -52,5 +52,6 @@ def test_sample_report_validates_against_schema():
     assert "alignment_artifacts" in instance
     assert "audio_quality" in instance
     assert "raw_metrics" in instance
+    assert "confidence_by_domain" in instance
     v = _validator()
     v.validate(instance)

@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     vowel_formant_f1_delta_threshold_hz: float = 120.0
     vowel_formant_f2_delta_threshold_hz: float = 180.0
     vowel_formant_distance_threshold_hz: float = 220.0
+    min_vowel_formant_pairs_for_medium_confidence: int = 1
+    min_vowel_formant_pairs_for_high_confidence: int = 3
 
     # Legacy single-audio heuristics retained for unused compatibility helpers.
     pause_outlier_multiplier: float = 2.8

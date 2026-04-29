@@ -281,6 +281,11 @@
       "additionalProperties": true,
       "title": "Raw Metrics",
       "type": "object"
+    },
+    "confidence_by_domain": {
+      "additionalProperties": true,
+      "title": "Confidence By Domain",
+      "type": "object"
     }
   },
   "required": [
