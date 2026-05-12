@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -63,6 +64,7 @@ class Settings(BaseSettings):
     gop_speaker_model_dir: Path = Field(
         default_factory=lambda: _project_root() / "models" / "speaker_adapted"
     )
+    gop_threshold_table_path: Optional[Path] = None
 
     # Same-speaker comparison thresholds — HEURISTIC, calibration-ready via env.
     word_duration_ratio_low: float = 0.58

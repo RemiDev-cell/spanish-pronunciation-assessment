@@ -9,3 +9,7 @@ build/
 .DS_Store
 .env
 data/work/
+data/heygen_reference/*
+!data/heygen_reference/.gitkeep
+data/learner_eval/*
+!data/learner_eval/.gitkeep

@@ -26,6 +26,7 @@ SAMPLE_RATE = 16_000
 
 _SILENCE_LABELS = {"", "sil", "sp", "spn", "silence", "<eps>", "<unk>", "unk"}
 _SPANISH_VOWELS = {"a", "e", "i", "o", "u"}
+_SPANISH_B_V_ALLOPHONES = {"b", "v", "β"}
 _SPECIAL_TOKEN_PATTERN = re.compile(r"^\[.*\]$|^<.*>$")
 
 _PHONE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -646,7 +647,9 @@ def gop_results_to_phonology_issues(gop_results: list[dict[str, Any]]) -> list[P
         phone = _normalize_phone_label(str(item.get("phoneme") or "phoneme"))
         gop = item.get("gop")
         gop_float = float(gop) if gop is not None else -2.0
-        best = str(item.get("best_competing") or "autre phoneme")
+        best = _normalize_phone_label(str(item.get("best_competing") or "autre phoneme"))
+        if phone in _SPANISH_B_V_ALLOPHONES and best in _SPANISH_B_V_ALLOPHONES:
+            continue
         error_type = (
             LocalizedErrorType.VOYELLE_MAL_REALISEE
             if phone in _SPANISH_VOWELS

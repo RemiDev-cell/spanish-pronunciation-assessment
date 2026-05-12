@@ -11,6 +11,7 @@ from src.gop_speaker_adapted import (
     build_phoneme_vocab,
     compute_gop_from_frame_scores,
     compute_phoneme_gop,
+    gop_results_to_phonology_issues,
 )
 
 
@@ -109,3 +110,36 @@ def test_reference_like_gop_is_non_negative_after_mocked_adaptation():
 
     assert results[0]["gop"] >= 0
     assert results[0]["status"] == "correct"
+
+
+def test_gop_issue_conversion_skips_spanish_b_v_noncontrast():
+    issues = gop_results_to_phonology_issues(
+        [
+            {
+                "phoneme": "b",
+                "t_start": 0.0,
+                "t_end": 0.1,
+                "gop": -4.0,
+                "gop_normalized": -40.0,
+                "best_competing": "v",
+                "status": "mispronunciation",
+            }
+        ]
+    )
+
+    assert issues == []
+
+
+def test_gop_status_thresholds_are_configurable():
+    rows = compute_gop_from_frame_scores(
+        torch.tensor([[0.0, 1.5]], dtype=torch.float32),
+        [{"phoneme": "a", "t_start": 0.0, "t_end": 1.0}],
+        {"a": 0, "e": 1},
+        1.0,
+        id_to_label={0: "a", 1: "e"},
+        valid_competitor_indices=[0, 1],
+        error_threshold=-2.0,
+        warning_threshold=-1.0,
+    )
+
+    assert rows[0]["status"] == "near_miss"

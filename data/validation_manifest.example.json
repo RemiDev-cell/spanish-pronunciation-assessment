@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "description": "Template for controlled GOP validation. Keep real audio files local unless they can be shared.",
+  "speaker_id": "speaker_001",
+  "samples": [
+    {
+      "id": "heygen_control_001",
+      "split": "heygen_reference",
+      "reference_audio": "data/heygen_reference/text_001.wav",
+      "learner_audio": "data/heygen_reference/text_001.wav",
+      "text": "Pero el perro corre rápido.",
+      "expected_outcome": "correct",
+      "target_phonemes": ["p", "e", "ɾ", "r", "o"],
+      "notes": "Positive control: HeyGen evaluated against itself or another correct HeyGen take."
+    },
+    {
+      "id": "learner_error_r_vs_tap_001",
+      "split": "learner_eval",
+      "reference_audio": "data/heygen_reference/text_001.wav",
+      "learner_audio": "data/learner_eval/error_r_vs_tap_001.wav",
+      "text": "Pero el perro corre rápido.",
+      "expected_outcome": "error",
+      "target_phonemes": ["r", "ɾ"],
+      "expected_error_type": "r_vs_tap_substitution",
+      "notes": "Controlled error targeting Spanish trill/tap contrast."
+    },
+    {
+      "id": "learner_error_vowel_001",
+      "split": "learner_eval",
+      "reference_audio": "data/heygen_reference/text_002.wav",
+      "learner_audio": "data/learner_eval/error_e_i_001.wav",
+      "text": "Vive en Sevilla.",
+      "expected_outcome": "error",
+      "target_phonemes": ["e", "i"],
+      "expected_error_type": "vowel_substitution",
+      "notes": "Controlled vowel contrast for threshold calibration."
+    }
+  ]
+}

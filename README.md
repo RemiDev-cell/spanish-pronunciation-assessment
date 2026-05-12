@@ -168,6 +168,7 @@ SPANISH_PHON_SAME_SPEAKER_MODE=true
 SPANISH_PHON_GOP_BASE_MODEL_ID=carlosdanielhernandezmena/wav2vec2-large-xlsr-53-spanish-ep5-944h
 SPANISH_PHON_GOP_HEYGEN_REFERENCE_DIR=data/heygen_reference
 SPANISH_PHON_GOP_SPEAKER_MODEL_DIR=models/speaker_adapted
+SPANISH_PHON_GOP_THRESHOLD_TABLE_PATH=
 
 # GOP thresholds (to be calibrated empirically)
 GOP_ERROR_THRESHOLD=-2.0
@@ -248,7 +249,37 @@ python -m src.pipeline \
 Flags:
 - `--strict-text-match` — raises ASR warn/reject thresholds
 - `--allow-partial-match` — loosens ASR gate only
+- `--force-gop-retrain` — re-runs LoRA speaker adaptation even if an adapter exists
+- `--skip-gop` — disables GOP for this run and keeps heuristic fallback scoring
+- `--gop-debug-output path/to/gop.json` — exports raw GOP payload for calibration
 - `--debug` — prints full tracebacks
+
+---
+
+## GOP validation workflow
+
+The next research priority is to prove and calibrate the speaker-adapted GOP signal before expanding the learner-facing product surface.
+
+1. Prepare a controlled local corpus using `data/validation_manifest.example.json` as a template.
+2. Run the pipeline with `--gop-debug-output` for HeyGen controls and learner/error samples.
+3. Aggregate GOP distributions:
+
+```bash
+python scripts/analyze_gop_calibration.py \
+  data/output/*.gop.json \
+  --manifest data/validation_manifest.json \
+  --output data/output/gop_calibration_summary.json
+```
+
+4. Export machine reports for ELE teacher annotation:
+
+```bash
+python scripts/export_expert_validation.py \
+  data/output/*.report.json \
+  --output data/output/expert_validation.csv
+```
+
+The calibration script estimates starter `warning` and `error` thresholds only when the manifest labels samples as `expected_outcome=correct` and `expected_outcome=error`. Real audio files should remain local unless the speaker consent and sharing policy are explicit.
 
 ---
 
@@ -287,6 +318,8 @@ src/
 | GOP module (`gop_speaker_adapted.py`) | ✅ Implemented |
 | LoRA fine-tuning on HeyGen audio | ✅ Implemented |
 | GOP logits scoring | ✅ Implemented |
+| GOP debug export + calibration script | ✅ Implemented |
+| Expert validation CSV export | ✅ Implemented |
 | CaGOP transition factor | 📋 Planned — not yet implemented |
 | Vowel formant analysis (F1/F2) | 📋 Architecture prepared |
 | Omission/insertion detection | 📋 Taxonomy defined — not yet implemented |

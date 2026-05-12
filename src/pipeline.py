@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import traceback
 import uuid
@@ -176,34 +177,62 @@ def _maybe_compute_speaker_adapted_gop(
     learner_alignment: AlignmentResult,
     settings: Settings,
     warnings: list[str],
-) -> list[dict[str, Any]]:
+    force_retrain: bool = False,
+    skip_gop: bool = False,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "enabled": bool(settings.same_speaker_mode and settings.gop_enabled and not skip_gop),
+        "status": "disabled",
+        "base_model_id": settings.gop_base_model_id,
+        "adapter_dir": str(settings.gop_speaker_model_dir / "lora_adapter"),
+        "thresholds": {
+            "warning": settings.gop_warning_threshold,
+            "error": settings.gop_error_threshold,
+            "threshold_table_path": None
+            if settings.gop_threshold_table_path is None
+            else str(settings.gop_threshold_table_path),
+        },
+        "phoneme_scores": [],
+    }
+    if skip_gop:
+        payload["status"] = "skipped_by_cli"
+        return payload
     if not settings.same_speaker_mode or not settings.gop_enabled:
-        return []
+        return payload
 
     phoneme_alignments = _phoneme_alignments_from_mfa(learner_alignment)
     if not phoneme_alignments:
         warnings.append("gop_speaker_adapted:no_phoneme_alignments")
-        return []
+        payload["status"] = "unavailable:no_phoneme_alignments"
+        return payload
 
     try:
         adapter_path = fine_tune_on_heygen(
             str(settings.gop_heygen_reference_dir),
             str(settings.gop_speaker_model_dir),
             base_model_id=settings.gop_base_model_id,
-            force_retrain=False,
+            force_retrain=force_retrain,
         )
-        return compute_phoneme_gop(
+        scores = compute_phoneme_gop(
             str(learner_wav),
             phoneme_alignments,
             adapter_path,
             settings.gop_base_model_id,
         )
+        payload["status"] = "computed_with_lora" if adapter_path else "computed_with_base_model"
+        payload["adapter_path"] = adapter_path
+        payload["phoneme_scores"] = scores
+        return payload
     except RuntimeError as e:
         warnings.append(f"gop_speaker_adapted_skipped:{e}")
-        return []
+        payload["status"] = "failed"
+        payload["error"] = str(e)
+        return payload
     except Exception as e:
         warnings.append(f"gop_speaker_adapted_failed:{e}")
-        return []
+        payload["status"] = "failed"
+        payload["error"] = str(e)
+        return payload
 
 
 def _vowel_formant_evidence(
@@ -380,6 +409,9 @@ def evaluate_reference_pair(
     allow_partial_match: bool,
     debug: bool,
     artifact_dir: Optional[Path] = None,
+    force_gop_retrain: bool = False,
+    skip_gop: bool = False,
+    gop_debug_output: Optional[Path] = None,
 ) -> EvaluationReport:
     """
     Same script read by the same speaker: personal reference and later evaluated take.
@@ -634,12 +666,15 @@ def evaluate_reference_pair(
             **ctx,
         )
 
-    gop_results = _maybe_compute_speaker_adapted_gop(
+    gop_payload = _maybe_compute_speaker_adapted_gop(
         learner_wav=wav_learner,
         learner_alignment=align_learner,
         settings=settings,
         warnings=warnings,
+        force_retrain=force_gop_retrain,
+        skip_gop=skip_gop,
     )
+    gop_results = list(gop_payload.get("phoneme_scores") or [])
 
     issues = collect_reference_pair_issues(
         align_model, align_learner, feat_model, feat_learner, expectations, settings
@@ -653,12 +688,16 @@ def evaluate_reference_pair(
     domains = compute_domain_scores(issues, feat_learner)
     global_scores = compute_global_scores(domains)
     raw_metrics = _raw_metrics_payload(feat_model, feat_learner, settings)
-    if gop_results:
-        raw_metrics["gop_speaker_adapted"] = {
-            "base_model_id": settings.gop_base_model_id,
-            "adapter_dir": str(settings.gop_speaker_model_dir / "lora_adapter"),
-            "phoneme_scores": gop_results,
-        }
+    raw_metrics["gop_speaker_adapted"] = gop_payload
+    if gop_debug_output is not None:
+        try:
+            gop_debug_output.parent.mkdir(parents=True, exist_ok=True)
+            gop_debug_output.write_text(
+                json.dumps(gop_payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError as e:
+            warnings.append(f"gop_debug_output_failed:{e}")
 
     return assemble_report(
         evaluation_status=eval_status,
@@ -716,6 +755,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help="Looser ASR gate (HEURISTIC partial_ratio boost).",
     )
+    p.add_argument(
+        "--force-gop-retrain",
+        action="store_true",
+        help="Re-run LoRA speaker adaptation even if a GOP adapter already exists.",
+    )
+    p.add_argument(
+        "--skip-gop",
+        action="store_true",
+        help="Disable speaker-adapted GOP for this run and keep heuristic fallback scoring only.",
+    )
+    p.add_argument(
+        "--gop-debug-output",
+        type=Path,
+        default=None,
+        help="Write raw speaker-adapted GOP payload to this JSON path.",
+    )
     p.add_argument("--debug", action="store_true", help="Print stack traces on failures.")
     args = p.parse_args(argv)
 
@@ -735,6 +790,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         allow_partial_match=bool(args.allow_partial_match),
         debug=bool(args.debug),
         artifact_dir=artifact_dir,
+        force_gop_retrain=bool(args.force_gop_retrain),
+        skip_gop=bool(args.skip_gop),
+        gop_debug_output=None
+        if args.gop_debug_output is None
+        else args.gop_debug_output.expanduser().resolve(),
     )
 
     text = report.model_dump_json(indent=2)
