@@ -1,0 +1,17 @@
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+soundfile>=0.12.1
+librosa>=0.10
+pydantic>=2.5
+pydantic-settings>=2.1
+rapidfuzz>=3.6
+openai-whisper>=20231117
+praat-parselmouth>=0.4.3
+silabeador>=1.2.1
+transformers>=4.40.0
+peft>=0.10.0
+datasets>=2.19.0
+accelerate>=0.29.0
+torch>=2.2.0
+torchaudio>=2.2.0

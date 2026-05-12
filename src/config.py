@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from pydantic import Field
@@ -46,6 +47,22 @@ class Settings(BaseSettings):
 
     # Default product assumption: both recordings are from the same speaker and setup.
     same_speaker_mode: bool = True
+
+    # Speaker-adapted GOP (Goodness of Pronunciation) configuration.
+    gop_enabled: bool = True
+    gop_base_model_id: str = "carlosdanielhernandezmena/wav2vec2-large-xlsr-53-spanish-ep5-944h"
+    gop_error_threshold: float = Field(
+        default_factory=lambda: float(os.getenv("GOP_ERROR_THRESHOLD", "-2.0"))
+    )
+    gop_warning_threshold: float = Field(
+        default_factory=lambda: float(os.getenv("GOP_WARNING_THRESHOLD", "-1.0"))
+    )
+    gop_heygen_reference_dir: Path = Field(
+        default_factory=lambda: _project_root() / "data" / "heygen_reference"
+    )
+    gop_speaker_model_dir: Path = Field(
+        default_factory=lambda: _project_root() / "models" / "speaker_adapted"
+    )
 
     # Same-speaker comparison thresholds — HEURISTIC, calibration-ready via env.
     word_duration_ratio_low: float = 0.58

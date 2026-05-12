@@ -13,6 +13,11 @@ from src.align import run_mfa_align
 from src.asr_validation import validate_asr_against_expected
 from src.config import Settings, get_settings
 from src.features import count_voiced_pitch_frames, extract_features
+from src.gop_speaker_adapted import (
+    compute_phoneme_gop,
+    fine_tune_on_heygen,
+    gop_results_to_phonology_issues,
+)
 from src.models import (
     AlignmentResult,
     ASRValidationResult,
@@ -143,6 +148,62 @@ def _vowel_formant_deltas(
             }
         )
     return deltas
+
+
+def _phoneme_alignments_from_mfa(alignment: AlignmentResult) -> list[dict[str, Any]]:
+    alignments: list[dict[str, Any]] = []
+    for word_index, word in enumerate(alignment.words):
+        for phone_index, phone in enumerate(word.phones):
+            label = phone.label.strip()
+            if not label:
+                continue
+            alignments.append(
+                {
+                    "phoneme": label,
+                    "t_start": phone.start,
+                    "t_end": phone.end,
+                    "word": word.label,
+                    "word_index": word_index,
+                    "phone_index": phone_index,
+                }
+            )
+    return alignments
+
+
+def _maybe_compute_speaker_adapted_gop(
+    *,
+    learner_wav: Path,
+    learner_alignment: AlignmentResult,
+    settings: Settings,
+    warnings: list[str],
+) -> list[dict[str, Any]]:
+    if not settings.same_speaker_mode or not settings.gop_enabled:
+        return []
+
+    phoneme_alignments = _phoneme_alignments_from_mfa(learner_alignment)
+    if not phoneme_alignments:
+        warnings.append("gop_speaker_adapted:no_phoneme_alignments")
+        return []
+
+    try:
+        adapter_path = fine_tune_on_heygen(
+            str(settings.gop_heygen_reference_dir),
+            str(settings.gop_speaker_model_dir),
+            base_model_id=settings.gop_base_model_id,
+            force_retrain=False,
+        )
+        return compute_phoneme_gop(
+            str(learner_wav),
+            phoneme_alignments,
+            adapter_path,
+            settings.gop_base_model_id,
+        )
+    except RuntimeError as e:
+        warnings.append(f"gop_speaker_adapted_skipped:{e}")
+        return []
+    except Exception as e:
+        warnings.append(f"gop_speaker_adapted_failed:{e}")
+        return []
 
 
 def _vowel_formant_evidence(
@@ -573,11 +634,31 @@ def evaluate_reference_pair(
             **ctx,
         )
 
+    gop_results = _maybe_compute_speaker_adapted_gop(
+        learner_wav=wav_learner,
+        learner_alignment=align_learner,
+        settings=settings,
+        warnings=warnings,
+    )
+
     issues = collect_reference_pair_issues(
         align_model, align_learner, feat_model, feat_learner, expectations, settings
     )
+    if gop_results:
+        issues = sorted(
+            issues + gop_results_to_phonology_issues(gop_results),
+            key=lambda x: x.score_penalty_hint * x.confidence,
+            reverse=True,
+        )[:25]
     domains = compute_domain_scores(issues, feat_learner)
     global_scores = compute_global_scores(domains)
+    raw_metrics = _raw_metrics_payload(feat_model, feat_learner, settings)
+    if gop_results:
+        raw_metrics["gop_speaker_adapted"] = {
+            "base_model_id": settings.gop_base_model_id,
+            "adapter_dir": str(settings.gop_speaker_model_dir / "lora_adapter"),
+            "phoneme_scores": gop_results,
+        }
 
     return assemble_report(
         evaluation_status=eval_status,
@@ -593,7 +674,7 @@ def evaluate_reference_pair(
         asr_model_text=asr_model.text,
         alignment_artifacts=alignment_artifacts,
         audio_quality=_audio_quality_payload(model=q_model, learner=q_learner),
-        raw_metrics=_raw_metrics_payload(feat_model, feat_learner, settings),
+        raw_metrics=raw_metrics,
         confidence_by_domain=_confidence_by_domain_payload(
             model=feat_model,
             learner=feat_learner,
