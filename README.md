@@ -51,7 +51,7 @@ This design has three direct consequences for the measurement pipeline:
               │  3. SPEAKER-        │  wav2vec2-large-xlsr-53-spanish
               │     ADAPTED         │  fine-tuned via LoRA on the
               │     GOP MODULE      │  learner's HeyGen recordings.
-              │  (CaGOP variant)    │  Computes per-phoneme GOP scores
+              │  (GOP logits)       │  Computes per-phoneme GOP scores
               └──────────┬──────────┘  without ASR inference.
                          │
               ┌──────────▼──────────┐
@@ -83,7 +83,7 @@ The GOP module is the architectural centerpiece. It departs from the heuristic d
 
 The resulting LoRA adapter (~a few MB) is stored separately from the base model and can be swapped per learner without duplicating the 1.2 GB base weights.
 
-**GOP variant:** The pipeline implements **CaGOP** (Context-aware GOP, Shi et al., 2020), which extends standard GOP with a transition factor capturing coarticulation between adjacent phonemes and an attention-weighted duration factor. This makes the score sensitive to enchaînement errors that standard GOP misses.
+**GOP variant:** The implemented module currently computes standard phone-level GOP from the adapted wav2vec2 CTC frame logits. CaGOP-style transition and attention-weighted duration factors remain research roadmap items rather than active production logic.
 
 **GOP formula (standard, Witt & Young 2000):**
 ```
@@ -91,7 +91,7 @@ GOP(p) = log P(p | o_t1..t2) − max_q log P(q | o_t1..t2)
          normalized by phoneme duration
 ```
 
-Scores are computed from **raw logits** (not softmax-normalized probabilities), following Shi et al. (2022), which demonstrably improves discriminability for mispronunciation detection.
+Scores are computed from **raw logits** (not softmax-normalized probabilities), following Shi et al. (2022), which improves discriminability for mispronunciation detection.
 
 **Device support:**
 ```python
@@ -156,16 +156,18 @@ All thresholds and penalties are externalized in `src/config.py` and configurabl
 
 ## Configuration
 
-Copy `.env.example` to `.env` and adjust as needed.
+Create a `.env` file at the repository root if you want to override defaults.
 
 Key variables:
 
 ```bash
 # Same-speaker mode (default: true)
-SAME_SPEAKER_MODE=true
+SPANISH_PHON_SAME_SPEAKER_MODE=true
 
 # GOP model
-GOP_BASE_MODEL_ID=carlosdanielhernandezmena/wav2vec2-large-xlsr-53-spanish-ep5-944h
+SPANISH_PHON_GOP_BASE_MODEL_ID=carlosdanielhernandezmena/wav2vec2-large-xlsr-53-spanish-ep5-944h
+SPANISH_PHON_GOP_HEYGEN_REFERENCE_DIR=data/heygen_reference
+SPANISH_PHON_GOP_SPEAKER_MODEL_DIR=models/speaker_adapted
 
 # GOP thresholds (to be calibrated empirically)
 GOP_ERROR_THRESHOLD=-2.0
@@ -208,6 +210,7 @@ datasets>=2.19.0
 accelerate>=0.29.0
 torch>=2.2.0
 torchaudio>=2.2.0
+soundfile>=0.12.1
 ```
 
 ---
@@ -245,7 +248,6 @@ python -m src.pipeline \
 Flags:
 - `--strict-text-match` — raises ASR warn/reject thresholds
 - `--allow-partial-match` — loosens ASR gate only
-- `--force-retrain` — re-runs LoRA fine-tuning even if an adapter already exists
 - `--debug` — prints full tracebacks
 
 ---
@@ -261,7 +263,7 @@ src/
   asr_validation.py           script vs transcript comparison
   align.py                    MFA forced alignment
   textgrid_io.py              TextGrid parsing
-  gop_speaker_adapted.py      LoRA fine-tuning + CaGOP computation  ← new
+  gop_speaker_adapted.py      LoRA fine-tuning + GOP logits computation
   features.py                 Parselmouth acoustic features
   reference_pair_phonology.py learner-vs-reference deltas
   scoring.py                  six-domain scoring
@@ -281,10 +283,11 @@ src/
 | silabeador lexical stress | ✅ Implemented |
 | Heuristic scoring (legacy) | ✅ Implemented |
 | Same-speaker RMS normalization | 🔄 In progress |
-| `SAME_SPEAKER_MODE` flag | 🔄 In progress |
-| GOP module (`gop_speaker_adapted.py`) | 📋 Specified — pending implementation |
-| LoRA fine-tuning on HeyGen audio | 📋 Specified — pending implementation |
-| CaGOP transition factor | 📋 Specified — pending implementation |
+| `SAME_SPEAKER_MODE` flag | ✅ Implemented |
+| GOP module (`gop_speaker_adapted.py`) | ✅ Implemented |
+| LoRA fine-tuning on HeyGen audio | ✅ Implemented |
+| GOP logits scoring | ✅ Implemented |
+| CaGOP transition factor | 📋 Planned — not yet implemented |
 | Vowel formant analysis (F1/F2) | 📋 Architecture prepared |
 | Omission/insertion detection | 📋 Taxonomy defined — not yet implemented |
 | Expert validation phase | 🔬 Research phase — not yet started |
@@ -295,12 +298,12 @@ src/
 ## Roadmap
 
 **Short term**
-- Implement `gop_speaker_adapted.py` with LoRA fine-tuning and CaGOP scoring
-- Replace duration-delta `segmental_precision` with GOP scores
+- Calibrate GOP thresholds via controlled error injection
+- Exercise full LoRA fine-tuning on a real HeyGen reference corpus
 - Implement same-speaker RMS normalization in `preprocess.py`
-- Empirical calibration of GOP thresholds via controlled error injection
 
 **Medium term**
+- CaGOP transition factor and attention-weighted duration factor
 - Vowel formant tracking (F1/F2) for vocalic substitution detection
 - Syllable-to-phone grouping (replace proportional grapheme windows)
 - GOP-AF (alignment-free GOP) for omission and insertion detection
